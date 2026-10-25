@@ -4349,6 +4349,107 @@ describe("createClaudeNormalizer — 0.3.220 result-meta carry (fast_mode_disabl
   });
 });
 
+// ─── 0.3.310 model_usage_since_last_result → result-meta.modelUsageSinceLastResult ───
+// Runtime-only (in no sdk.d.ts): the per-model spend since the previous result.
+// The numbers are result 2 of the live multi-result-haiku55 capture
+// (2026-10-25, 0.3.310), where it equals modelUsage₂ − modelUsage₁.
+describe("createClaudeNormalizer — 0.3.310 model_usage_since_last_result rides ext.anthropic.result-meta", () => {
+  const SINCE = {
+    "claude-haiku-5-5": {
+      inputTokens: 4,
+      outputTokens: 67,
+      cacheReadInputTokens: 2593,
+      cacheCreationInputTokens: 147,
+      webSearchRequests: 0,
+      costUSD: 0.000078205,
+      contextWindow: 1000000,
+      maxOutputTokens: 128000,
+      thinkingTokens: 0,
+      canonicalModel: "claude-haiku-5-5",
+      provider: "firstParty",
+      costBasis: "list",
+    },
+  };
+  const MAPPED = {
+    "claude-haiku-5-5": {
+      inputTokens: 2744,
+      outputTokens: 67,
+      cacheReadTokens: 2593,
+      cacheWriteTokens: 147,
+      reasoningTokens: 0,
+      costUsd: 0.000078205,
+      serverToolRequests: 0,
+      cumulative: false,
+    },
+  };
+  const withSince = (base: SDKMessage, since: unknown): SDKMessage =>
+    ({ ...(base as object), model_usage_since_last_result: since }) as unknown as SDKMessage;
+
+  it("maps each model's per-result counters like a byModel entry (cache-inclusive input, cumulative false), before turn.done", () => {
+    const evs = run(withSince(resultSuccess("end_turn"), SINCE));
+    assertAllValid(evs);
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.done"]);
+    // Exactly the mapped counters: no statics, no identity, no native names.
+    expect((evs[1] as { modelUsageSinceLastResult?: unknown }).modelUsageSinceLastResult).toStrictEqual(MAPPED);
+    // turn.done is untouched by the carry: the same bytes as without it, but
+    // for the seq slot the result-meta event takes.
+    const bare = run(resultSuccess("end_turn"));
+    const noSeq = (e: AgEvent | undefined) => JSON.stringify({ ...e, seq: 0 });
+    expect(noSeq(evs[2])).toBe(noSeq(bare[1]));
+  });
+
+  it("rides the ERROR result arm too, before turn.error", () => {
+    const evs = run(withSince(resultError("error_during_execution"), SINCE));
+    assertAllValid(evs);
+    expect(evs.map((e) => e.type)).toEqual(["turn.start", "ext.anthropic.result-meta", "turn.error"]);
+    expect((evs[1] as { modelUsageSinceLastResult?: unknown }).modelUsageSinceLastResult).toStrictEqual(MAPPED);
+  });
+
+  it("carries only numeric counters, and lists only the models the frame lists", () => {
+    const evs = run(
+      withSince(resultSuccess("end_turn"), {
+        "claude-a": { outputTokens: 5, inputTokens: "4", costUSD: null, cacheReadInputTokens: 3 },
+        "claude-b": { contextWindow: 1000000, canonicalModel: "claude-b" },
+      }),
+    );
+    assertAllValid(evs);
+    // A non-numeric input counter yields no inputTokens (no NaN, no guess);
+    // claude-b has no counter at all, so it gets no entry.
+    expect((evs[1] as { modelUsageSinceLastResult?: unknown }).modelUsageSinceLastResult).toStrictEqual({
+      "claude-a": { outputTokens: 5, cacheReadTokens: 3, cumulative: false },
+    });
+  });
+
+  it("NEGATIVE CONTROL: absent, non-object, empty, entry-less or __proto__-only maps emit nothing new (byte-identical)", () => {
+    const bare = run(resultSuccess("end_turn"));
+    expect(bare.map((e) => e.type)).toEqual(["turn.start", "turn.done"]);
+    const protoOnly = JSON.parse('{"__proto__": {"outputTokens": 9}}');
+    for (const bad of [null, 7, "x", [SINCE], {}, { m: null }, { m: [1] }, { m: { contextWindow: 1 } }, protoOnly]) {
+      const evs = run(withSince(resultSuccess("end_turn"), bad));
+      expect(JSON.stringify(evs)).toBe(JSON.stringify(bare));
+    }
+  });
+
+  it("fold: two results of one streaming-input query, each with its since-map, fold clean through Reducer", () => {
+    const n = createClaudeNormalizer();
+    const r1 = withSince(resultSuccess("end_turn"), SINCE);
+    const r2 = withSince(resultSuccess("end_turn"), SINCE);
+    const events = [
+      ...n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "one", citations: null }]))),
+      ...n.push(JsonValue.parse(r1)),
+      ...n.push(JsonValue.parse(assistantMsg([{ type: "text", text: "two", citations: null }]))),
+      ...n.push(JsonValue.parse(r2)),
+      ...n.flush(),
+    ];
+    assertAllValid(events);
+    expect(events.filter((e) => e.type === "ext.anthropic.result-meta")).toHaveLength(2);
+    const r = new Reducer();
+    for (const e of events) r.push(e);
+    expect(r.needsResync).toBe(false);
+    expect(r.result().turns.map((t) => t.outcome?.type)).toEqual(["success", "success"]);
+  });
+});
+
 describe("createClaudeNormalizer — 0.3.258 result-meta additions (ModelUsage.costBasis / user_message_uuid / queued_turn_count)", () => {
   type SDKResultErrorMsg = Exclude<Extract<SDKMessage, { type: "result" }>, { subtype: "success" }>;
   const UMU = "018f0000-0000-7000-8000-00000000e001";

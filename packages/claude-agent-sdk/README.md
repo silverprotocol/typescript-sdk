@@ -153,6 +153,13 @@ Usage follows the AgJSON draft.5 accounting rules (spec §4):
   `query()` call (`cumulative: true`). They cover every model call in the query
   pipeline, subagents and internal calls such as compaction included, so they
   can exceed the turn's own counters.
+- **Per-model spend since the previous result.** When the SDK reports it (from
+  0.3.310), `ext.anthropic.result-meta.modelUsageSinceLastResult` holds, for
+  each model, what that model spent since the query's previous result, mapped
+  like a `byModel` entry (cache-inclusive `inputTokens`) with
+  `cumulative: false`. In the two-result capture that introduced it, the first
+  result's map equalled `byModel`. A model the SDK does not list there gets no
+  entry.
 - **Message-level usage** is the message stream's running total
   (`cumulative: true`). Without partial messages, an assistant message's
   `output_tokens` is a placeholder for a count the SDK reports on the result,

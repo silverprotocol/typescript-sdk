@@ -1329,6 +1329,9 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
   // a success close keeps it on finishReason / finishReasonRaw (no duplicate).
   const stopReason =
     closesAsError && isJsonObject(raw) && typeof raw["stop_reason"] === "string" ? raw["stop_reason"] : undefined;
+  const modelUsageSinceLastResult = isJsonObject(raw)
+    ? readModelUsageSinceLastResult(raw["model_usage_since_last_result"])
+    : undefined;
   const payload: { [k: string]: JsonValue } = {
     ...(typeof msg.fast_mode_disabled_reason === "string"
       ? { fastModeDisabledReason: msg.fast_mode_disabled_reason }
@@ -1348,8 +1351,54 @@ function resultMetaPayload(msg: SDKResultMsg, closesAsError: boolean): { [k: str
     ...(apiErrorStatus !== undefined ? { apiErrorStatus } : {}),
     ...(stopReason !== undefined ? { stopReason } : {}),
     ...(Object.keys(byModel).length > 0 ? { modelUsage: byModel } : {}),
+    ...(modelUsageSinceLastResult !== undefined ? { modelUsageSinceLastResult } : {}),
   };
   return Object.keys(payload).length > 0 ? payload : undefined;
+}
+
+// `model_usage_since_last_result` (0.3.310; runtime-only, in no sdk.d.ts): a
+// per-model map with modelUsage's members, holding what each model spent
+// SINCE THE PREVIOUS RESULT of the query. The live multi-result capture
+// (corpus: multi-result-haiku55) shows result 1's map equal to its modelUsage
+// and result 2's equal to modelUsage₂ − modelUsage₁ for every counter.
+// `usage.byModel` keeps the running totals (`cumulative: true`), so this
+// per-result breakdown is carried here under `modelUsageSinceLastResult`,
+// mapped the way a byModel entry is (cache-inclusive `inputTokens`, draft.5 §4)
+// and flagged `cumulative: false`.
+// Only numeric counters are carried, so a malformed member invents no key. A
+// model is listed exactly when the frame lists it; no zero entry is made up for
+// a model the frame omits. The static members (contextWindow, maxOutputTokens)
+// and the serving identity (canonicalModel, provider, costBasis) are not
+// repeated: the identity rides `modelUsage` above. An absent, non-object or
+// empty map yields no key, so frames without it stay byte-identical.
+function readModelUsageSinceLastResult(v: unknown): { [k: string]: JsonValue } | undefined {
+  if (!isJsonObject(v)) return undefined;
+  const out: { [k: string]: JsonValue } = {};
+  for (const [model, mu] of Object.entries(v)) {
+    // SPEC §13.7: an own `__proto__` key is dropped, never passed through.
+    if (model === "__proto__" || !isJsonObject(mu)) continue;
+    const num = (k: string): number | undefined => {
+      const n = mu[k];
+      return typeof n === "number" ? n : undefined;
+    };
+    const cacheRead = num("cacheReadInputTokens");
+    const cacheWrite = num("cacheCreationInputTokens");
+    const inputTokens = inclusiveInput(num("inputTokens"), cacheRead, cacheWrite);
+    const outputTokens = num("outputTokens");
+    const reasoningTokens = num("thinkingTokens");
+    const costUsd = num("costUSD");
+    const serverToolRequests = num("webSearchRequests");
+    const counters: { [k: string]: JsonValue } = {
+      ...(inputTokens !== undefined ? { inputTokens } : {}),
+      ...(outputTokens !== undefined ? { outputTokens } : {}),
+      ...cacheBreakdown(cacheRead, cacheWrite),
+      ...(reasoningTokens !== undefined ? { reasoningTokens } : {}),
+      ...(costUsd !== undefined ? { costUsd } : {}),
+      ...(serverToolRequests !== undefined ? { serverToolRequests } : {}),
+    };
+    if (Object.keys(counters).length > 0) out[model] = { ...counters, cumulative: false };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 // A result frame's turn usage, or undefined when the frame's usage trio is not
