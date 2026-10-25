@@ -2,38 +2,38 @@
   {
     "type": "turn.start",
     "seq": 0,
-    "turnId": "turn_msg_011CgCryyhoPzYrcFpUuvDYW",
-    "threadId": "ca720f29-8f90-42e1-9747-b25d03ecfa3f"
+    "turnId": "turn_msg_011CgNvpnJx4evteNZKTjEwu",
+    "threadId": "87127505-7f1c-44db-bb53-6797da94c70e"
   },
   {
     "type": "message.start",
     "seq": 1,
-    "id": "msg_011CgCryyhoPzYrcFpUuvDYW",
-    "turnId": "turn_msg_011CgCryyhoPzYrcFpUuvDYW",
-    "threadId": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
+    "id": "msg_011CgNvpnJx4evteNZKTjEwu",
+    "turnId": "turn_msg_011CgNvpnJx4evteNZKTjEwu",
+    "threadId": "87127505-7f1c-44db-bb53-6797da94c70e",
     "role": "assistant",
     "model": "claude-haiku-5-5"
   },
   {
     "type": "tool.start",
     "seq": 2,
-    "turnId": "turn_msg_011CgCryyhoPzYrcFpUuvDYW",
-    "toolCallId": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+    "turnId": "turn_msg_011CgNvpnJx4evteNZKTjEwu",
+    "toolCallId": "toolu_01AMYWEReAU2j3SmQbkJD16A",
     "name": "mcp__t__echo",
     "index": 0,
-    "messageId": "msg_011CgCryyhoPzYrcFpUuvDYW",
+    "messageId": "msg_011CgNvpnJx4evteNZKTjEwu",
     "providerExecuted": false
   },
   {
     "type": "tool.args.delta",
     "seq": 3,
-    "toolCallId": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+    "toolCallId": "toolu_01AMYWEReAU2j3SmQbkJD16A",
     "delta": "{\"message\":\"conformance-probe-haiku55\"}"
   },
   {
     "type": "tool.args.assembled",
     "seq": 4,
-    "toolCallId": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+    "toolCallId": "toolu_01AMYWEReAU2j3SmQbkJD16A",
     "input": {
       "message": "conformance-probe-haiku55"
     }
@@ -41,19 +41,19 @@
   {
     "type": "message.end",
     "seq": 5,
-    "id": "msg_011CgCryyhoPzYrcFpUuvDYW",
+    "id": "msg_011CgNvpnJx4evteNZKTjEwu",
     "usage": {
       "inputTokens": 1189,
-      "cacheReadTokens": 1187,
-      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 1187,
       "cumulative": true
     }
   },
   {
     "type": "tool.done",
     "seq": 6,
-    "turnId": "turn_msg_011CgCryyhoPzYrcFpUuvDYW",
-    "toolCallId": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+    "turnId": "turn_msg_011CgNvpnJx4evteNZKTjEwu",
+    "toolCallId": "toolu_01AMYWEReAU2j3SmQbkJD16A",
     "content": [
       {
         "type": "text",
@@ -62,10 +62,10 @@
     ],
     "outcome": "ok",
     "isError": false,
-    "messageId": "toolu_01FX4QxdD1bveUEHSvnPMak8:result",
+    "messageId": "toolu_01AMYWEReAU2j3SmQbkJD16A:result",
     "_meta": {
       "anthropic/toolResultMeta": {
-        "id": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+        "id": "toolu_01AMYWEReAU2j3SmQbkJD16A",
         "permission_decision": {
           "decision": "accept",
           "source": "config",
@@ -77,42 +77,42 @@
   {
     "type": "message.start",
     "seq": 7,
-    "id": "msg_011CgCrz8Ekxqb22aSAJLFeM",
-    "turnId": "turn_msg_011CgCryyhoPzYrcFpUuvDYW",
-    "threadId": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
+    "id": "msg_011CgNvprXhUTjwyzD1Tcnae",
+    "turnId": "turn_msg_011CgNvpnJx4evteNZKTjEwu",
+    "threadId": "87127505-7f1c-44db-bb53-6797da94c70e",
     "role": "assistant",
     "model": "claude-haiku-5-5"
   },
   {
     "type": "text.start",
     "seq": 8,
-    "id": "msg_011CgCrz8Ekxqb22aSAJLFeM:text:0",
-    "messageId": "msg_011CgCrz8Ekxqb22aSAJLFeM",
-    "turnId": "turn_msg_011CgCryyhoPzYrcFpUuvDYW"
+    "id": "msg_011CgNvprXhUTjwyzD1Tcnae:text:0",
+    "messageId": "msg_011CgNvprXhUTjwyzD1Tcnae",
+    "turnId": "turn_msg_011CgNvpnJx4evteNZKTjEwu"
   },
   {
     "type": "text.delta",
     "seq": 9,
-    "id": "msg_011CgCrz8Ekxqb22aSAJLFeM:text:0",
-    "messageId": "msg_011CgCrz8Ekxqb22aSAJLFeM",
+    "id": "msg_011CgNvprXhUTjwyzD1Tcnae:text:0",
+    "messageId": "msg_011CgNvprXhUTjwyzD1Tcnae",
     "delta": "The echo tool returned: conformance-probe-haiku55",
-    "turnId": "turn_msg_011CgCryyhoPzYrcFpUuvDYW"
+    "turnId": "turn_msg_011CgNvpnJx4evteNZKTjEwu"
   },
   {
     "type": "text.end",
     "seq": 10,
-    "id": "msg_011CgCrz8Ekxqb22aSAJLFeM:text:0",
-    "messageId": "msg_011CgCrz8Ekxqb22aSAJLFeM",
-    "turnId": "turn_msg_011CgCryyhoPzYrcFpUuvDYW"
+    "id": "msg_011CgNvprXhUTjwyzD1Tcnae:text:0",
+    "messageId": "msg_011CgNvprXhUTjwyzD1Tcnae",
+    "turnId": "turn_msg_011CgNvpnJx4evteNZKTjEwu"
   },
   {
     "type": "message.end",
     "seq": 11,
-    "id": "msg_011CgCrz8Ekxqb22aSAJLFeM",
+    "id": "msg_011CgNvprXhUTjwyzD1Tcnae",
     "usage": {
       "inputTokens": 1291,
-      "cacheReadTokens": 1289,
-      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1187,
+      "cacheWriteTokens": 102,
       "cumulative": true
     }
   },
@@ -157,7 +157,7 @@
   {
     "type": "turn.done",
     "seq": 13,
-    "turnId": "turn_msg_011CgCryyhoPzYrcFpUuvDYW",
+    "turnId": "turn_msg_011CgNvpnJx4evteNZKTjEwu",
     "outcome": {
       "type": "success",
       "result": "The echo tool returned: conformance-probe-haiku55"
@@ -166,21 +166,21 @@
     "usage": {
       "inputTokens": 2480,
       "outputTokens": 83,
-      "cacheReadTokens": 2476,
-      "cacheWriteTokens": 0,
+      "cacheReadTokens": 1187,
+      "cacheWriteTokens": 1289,
       "reasoningTokens": 0,
       "serverToolRequests": 0,
-      "costUsd": 0.00019786,
+      "costUsd": 0.000214895,
       "costScope": "query",
       "cumulative": false,
       "byModel": {
         "claude-haiku-5-5": {
-          "inputTokens": 3672,
-          "outputTokens": 107,
-          "cacheReadTokens": 2476,
-          "cacheWriteTokens": 0,
+          "inputTokens": 2480,
+          "outputTokens": 83,
+          "cacheReadTokens": 1187,
+          "cacheWriteTokens": 1289,
           "reasoningTokens": 0,
-          "costUsd": 0.00019786,
+          "costUsd": 0.000214895,
           "serverToolRequests": 0,
           "cumulative": true
         }

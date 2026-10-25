@@ -263,6 +263,9 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   // 2026-10-25: the vercel web-search seed (text-end citations), enrolled at
   // capture time (capture-time coverage.json is computed against EMPTY guard maps).
   { scenario: "web-search-gpt61sol", framework: "vercel" },
+  // 2026-10-25: the two-result claude seed on haiku55 at 0.3.310 (the
+  // model_usage_since_last_result delta evidence), enrolled at capture time.
+  { scenario: "multi-result-haiku55", framework: "claude" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

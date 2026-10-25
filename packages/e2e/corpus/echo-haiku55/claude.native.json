@@ -3,7 +3,7 @@
     "type": "system",
     "subtype": "init",
     "cwd": "<redacted-path>",
-    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
+    "session_id": "87127505-7f1c-44db-bb53-6797da94c70e",
     "tools": [
       "mcp__t__echo"
     ],
@@ -76,7 +76,7 @@
       "reload-plugins"
     ],
     "apiKeySource": "ANTHROPIC_API_KEY",
-    "claude_code_version": "2.1.304",
+    "claude_code_version": "2.1.310",
     "output_style": "default",
     "agents": [
       "claude",
@@ -126,8 +126,10 @@
       "interrupt_receipt_v1",
       "interrupt_cancel_queued_v1",
       "interrupt_send_now_v1",
+      "interrupt_requeue_taken_v1",
       "msg_lifecycle_v1",
       "request_marker_lists_v1",
+      "lifecycle_wakeup_source_v1",
       "sdk_mcp_tools_list_changed",
       "sdk_mcp_manifests",
       "mcp_read_resource_v1",
@@ -137,10 +139,10 @@
     ],
     "analytics_disabled": false,
     "product_feedback_disabled": false,
-    "uuid": "95591fee-3131-4d41-ae11-e3792a5bcda9",
+    "uuid": "e33fccf3-f9a5-4635-8f50-b6cca3b74f9b",
     "original_cwd": "<redacted-path>",
     "additional_directories": [],
-    "messaging_socket_path": "/tmp/cc-socks/29145.sock",
+    "messaging_socket_path": "/tmp/cc-socks/23460.sock",
     "fast_mode_state": "off",
     "fast_mode_disabled_reason": "sdk_opt_in_required",
     "per_turn_effort_active": true,
@@ -150,13 +152,13 @@
     "type": "assistant",
     "message": {
       "model": "claude-haiku-5-5",
-      "id": "msg_011CgCryyhoPzYrcFpUuvDYW",
+      "id": "msg_011CgNvpnJx4evteNZKTjEwu",
       "type": "message",
       "role": "assistant",
       "content": [
         {
           "type": "tool_use",
-          "id": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+          "id": "toolu_01AMYWEReAU2j3SmQbkJD16A",
           "name": "mcp__t__echo",
           "input": {
             "message": "conformance-probe-haiku55"
@@ -172,10 +174,10 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 1187,
+        "cache_creation_input_tokens": 1187,
+        "cache_read_input_tokens": 0,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 1187,
           "ephemeral_1h_input_tokens": 0
         },
         "output_tokens": 24,
@@ -188,18 +190,18 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
-    "uuid": "c8ae9744-7b43-45eb-a870-64f22b0f6218",
-    "timestamp": "2026-10-20T04:31:53.308Z",
-    "request_id": "req_011CgCryyUPy4KJnVnufpwYM",
+    "session_id": "87127505-7f1c-44db-bb53-6797da94c70e",
+    "uuid": "3a434551-a713-4484-8eb4-88469c0ed23b",
+    "timestamp": "2026-10-25T12:08:12.155Z",
+    "request_id": "req_011CgNvpn5onWY5MHhrCJRVi",
     "wire_tool_inputs": {
-      "toolu_01FX4QxdD1bveUEHSvnPMak8": {
+      "toolu_01AMYWEReAU2j3SmQbkJD16A": {
         "message": "conformance-probe-haiku55"
       }
     },
     "tool_use_meta": [
       {
-        "id": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+        "id": "toolu_01AMYWEReAU2j3SmQbkJD16A",
         "display_name": "Echo",
         "server_display_name": "mock-text",
         "tool_name": "echo"
@@ -212,7 +214,7 @@
       "role": "user",
       "content": [
         {
-          "tool_use_id": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+          "tool_use_id": "toolu_01AMYWEReAU2j3SmQbkJD16A",
           "type": "tool_result",
           "content": [
             {
@@ -224,9 +226,9 @@
       ]
     },
     "parent_tool_use_id": null,
-    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
-    "uuid": "e861322e-e48b-4aae-a74d-0d16b14bc9b8",
-    "timestamp": "2026-10-20T04:31:53.320Z",
+    "session_id": "87127505-7f1c-44db-bb53-6797da94c70e",
+    "uuid": "26b6821b-c70c-4be5-b002-d57c52685592",
+    "timestamp": "2026-10-25T12:08:12.172Z",
     "tool_use_result": [
       {
         "type": "text",
@@ -235,7 +237,7 @@
     ],
     "tool_result_meta": [
       {
-        "id": "toolu_01FX4QxdD1bveUEHSvnPMak8",
+        "id": "toolu_01AMYWEReAU2j3SmQbkJD16A",
         "permission_decision": {
           "decision": "accept",
           "source": "config",
@@ -248,7 +250,7 @@
     "type": "assistant",
     "message": {
       "model": "claude-haiku-5-5",
-      "id": "msg_011CgCrz8Ekxqb22aSAJLFeM",
+      "id": "msg_011CgNvprXhUTjwyzD1Tcnae",
       "type": "message",
       "role": "assistant",
       "content": [
@@ -263,10 +265,10 @@
       "stop_details": null,
       "usage": {
         "input_tokens": 2,
-        "cache_creation_input_tokens": 0,
-        "cache_read_input_tokens": 1289,
+        "cache_creation_input_tokens": 102,
+        "cache_read_input_tokens": 1187,
         "cache_creation": {
-          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_5m_input_tokens": 102,
           "ephemeral_1h_input_tokens": 0
         },
         "output_tokens": 8,
@@ -279,20 +281,20 @@
       "context_management": null
     },
     "parent_tool_use_id": null,
-    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
-    "uuid": "db1088c6-ac7f-4d95-8540-9d7b6c6d5bd9",
-    "timestamp": "2026-10-20T04:31:55.226Z",
-    "request_id": "req_011CgCrz81rXWwNyVQaQphYQ"
+    "session_id": "87127505-7f1c-44db-bb53-6797da94c70e",
+    "uuid": "d2f1e100-ce42-4ab2-9ae1-1e0014bbf7f4",
+    "timestamp": "2026-10-25T12:08:12.860Z",
+    "request_id": "req_011CgNvprGaMr8GeRtj6WaSS"
   },
   {
-    "duration_api_ms": 4580,
+    "duration_api_ms": 1724,
     "stop_reason": "end_turn",
-    "session_id": "ca720f29-8f90-42e1-9747-b25d03ecfa3f",
-    "total_cost_usd": 0.00019786,
+    "session_id": "87127505-7f1c-44db-bb53-6797da94c70e",
+    "total_cost_usd": 0.000214895,
     "usage": {
       "input_tokens": 4,
-      "cache_creation_input_tokens": 0,
-      "cache_read_input_tokens": 2476,
+      "cache_creation_input_tokens": 1289,
+      "cache_read_input_tokens": 1187,
       "output_tokens": 83,
       "output_tokens_details": {
         "thinking_tokens": 0
@@ -304,17 +306,17 @@
       "service_tier": "standard",
       "cache_creation": {
         "ephemeral_1h_input_tokens": 0,
-        "ephemeral_5m_input_tokens": 0
+        "ephemeral_5m_input_tokens": 1289
       },
       "inference_geo": "global",
       "iterations": [
         {
           "input_tokens": 2,
           "output_tokens": 21,
-          "cache_read_input_tokens": 1289,
-          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 1187,
+          "cache_creation_input_tokens": 102,
           "cache_creation": {
-            "ephemeral_5m_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 102,
             "ephemeral_1h_input_tokens": 0
           },
           "type": "message"
@@ -325,12 +327,12 @@
     },
     "modelUsage": {
       "claude-haiku-5-5": {
-        "inputTokens": 1196,
-        "outputTokens": 107,
-        "cacheReadInputTokens": 2476,
-        "cacheCreationInputTokens": 0,
+        "inputTokens": 4,
+        "outputTokens": 83,
+        "cacheReadInputTokens": 1187,
+        "cacheCreationInputTokens": 1289,
         "webSearchRequests": 0,
-        "costUSD": 0.00019786,
+        "costUSD": 0.000214895,
         "contextWindow": 1000000,
         "maxOutputTokens": 128000,
         "thinkingTokens": 0,
@@ -373,14 +375,30 @@
     "subtype": "success",
     "api_error_status": null,
     "result": "The echo tool returned: conformance-probe-haiku55",
-    "ttft_ms": 1501,
+    "ttft_ms": 1400,
     "type": "result",
-    "duration_ms": 3429,
-    "uuid": "d60569dd-e56f-4668-9bd3-67c29f6a3858",
-    "ttft_stream_ms": 1381,
-    "time_to_request_ms": 201,
-    "first_content_frame_ms": 1381,
+    "duration_ms": 2119,
+    "uuid": "1b80bf6d-4568-4dbf-ab4f-8a8b7f9cbfa9",
+    "ttft_stream_ms": 1167,
+    "time_to_request_ms": 377,
+    "first_content_frame_ms": 1167,
     "queued_turn_count": 0,
-    "result_index": 0
+    "result_index": 0,
+    "model_usage_since_last_result": {
+      "claude-haiku-5-5": {
+        "inputTokens": 4,
+        "outputTokens": 83,
+        "cacheReadInputTokens": 1187,
+        "cacheCreationInputTokens": 1289,
+        "webSearchRequests": 0,
+        "costUSD": 0.000214895,
+        "contextWindow": 1000000,
+        "maxOutputTokens": 128000,
+        "thinkingTokens": 0,
+        "canonicalModel": "claude-haiku-5-5",
+        "provider": "firstParty",
+        "costBasis": "list"
+      }
+    }
   }
 ]

@@ -145,6 +145,10 @@ const CLAUDE_SEEDS = [
   // user_message_uuid(s) (harness-minted prompt uuids). Folds to 2 turns with
   // distinct per-result turnIds, needsResync false.
   "multi-result-sonnet5",
+  // 2026-10-25: the same two-prompt shape on claude-haiku-5-5 @0.3.310, the
+  // evidence that 0.3.310's runtime-only model_usage_since_last_result is the
+  // per-result delta of modelUsage (result 2's map = modelUsage2 - modelUsage1).
+  "multi-result-haiku55",
   // 2026-09-25 (R&D candidate 7, client correlation): the first STREAMED invoke
   // with caller-minted prompt uuids. multi-result's `followUps` (streaming input,
   // a harness-minted uuid per prompt) plus includePartialMessages;
