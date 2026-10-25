@@ -85,6 +85,10 @@ function projectError(e: Error): { [k: string]: unknown } {
  * unnormalized, each item materialized as a plain `JsonValue` via `toJsonValue`
  * (the native-ingestion boundary — the whole part, no per-field cast).
  */
+/** The ToolSet key of OpenAI's provider-executed web search tool, added when
+ *  the scenario sets `vercelWebSearch` (also the knob guard's proof export). */
+export const VERCEL_WEB_SEARCH_TOOL = "web_search";
+
 export async function* runVercelCapture(input: CaptureRunInput): AsyncIterable<JsonValue> {
   const apiKey = input.apiKey ?? process.env["OPENAI_API_KEY"];
   if (!apiKey) {
@@ -112,6 +116,7 @@ export async function* runVercelCapture(input: CaptureRunInput): AsyncIterable<J
       clients.push(client);
       tools = { ...tools, ...(await client.tools()) };
     }
+    if (input.webSearch === true) tools = { ...tools, [VERCEL_WEB_SEARCH_TOOL]: openai.tools.webSearch({}) };
 
     const result = streamText({
       model: openai(input.model ?? "gpt-4o-mini"),

@@ -103,7 +103,7 @@
  * `ext.vercel.unparsed{native}`. `ai` is an OPTIONAL peer, never imported.
  */
 
-import type { AgEvent, AgFinishReason, AgUsage, JsonValue, Normalizer } from "@silverprotocol/core";
+import type { AgCitation, AgEvent, AgFinishReason, AgUsage, JsonValue, Normalizer } from "@silverprotocol/core";
 import { AgProviderMeta, StreamAssembler, toJsonValueSafe } from "@silverprotocol/core";
 
 // ─── host-boundary sentinel (error arm C) ────────────────────────────────────
@@ -352,6 +352,53 @@ const THREAD_ID = "vercel";
  */
 const EXT_VENDOR = "vercel";
 
+/**
+ * A text-end part's `citations` (ai>=7.0.138, LanguageModelV4Citation
+ * `{source, startIndex?, endIndex?, citedText?}`), split for the STREAMED-text
+ * citations carrier (SPEC §5 text.end row). A citation whose source is a URL
+ * source (`sourceType:"url"` with a string `url`) maps to an AgCitation
+ * `kind:"url"` with `indexFrame:"response"` (the openai facet's url_citation
+ * mapping): `citedText` is the citation's own when it is a string, else the
+ * block text between its offsets when both are valid, else "". Every other
+ * entry (a document source, a malformed entry) has no AgCitation target and is
+ * returned verbatim in `unmapped`, for the `ext.vercel.citations` carry (never
+ * dropped silently).
+ */
+function splitCitations(raw: readonly unknown[], blockText: string): { citations: AgCitation[]; unmapped: unknown[] } {
+  const citations: AgCitation[] = [];
+  const unmapped: unknown[] = [];
+  const offset = (v: unknown): number | null | undefined =>
+    v === undefined ? undefined : typeof v === "number" && Number.isFinite(v) ? v : null;
+  for (const c of raw) {
+    const cit = rec(c);
+    const source = rec(cit?.["source"]);
+    const url = str(source?.["url"]);
+    const start = offset(cit?.["startIndex"]);
+    const end = offset(cit?.["endIndex"]);
+    if (cit === undefined || source?.["sourceType"] !== "url" || url === undefined || start === null || end === null) {
+      unmapped.push(c);
+      continue;
+    }
+    const own = str(cit["citedText"]);
+    const citedText =
+      own ??
+      (start !== undefined && end !== undefined && start >= 0 && start <= end && end <= blockText.length
+        ? blockText.slice(start, end)
+        : "");
+    const title = str(source["title"]);
+    citations.push({
+      kind: "url",
+      url,
+      citedText,
+      indexFrame: "response",
+      ...(title !== undefined ? { title } : {}),
+      ...(start !== undefined ? { startIndex: start } : {}),
+      ...(end !== undefined ? { endIndex: end } : {}),
+    });
+  }
+  return { citations, unmapped };
+}
+
 /** Options for {@link createVercelNormalizer}. */
 export interface VercelNormalizerOptions {
   /**
@@ -407,6 +454,8 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
   let stepId: string | undefined; // current open step marker id
   let msgId: string | undefined; // current open message id
   const openTextIds = new Set<string>();
+  // id → the text streamed so far, read only by a text-end's citations (citedText).
+  const textById = new Map<string, string>();
   const openReasoningIds = new Set<string>();
   const pendingToolIds = new Set<string>(); // tool-input-start seen, tool-call not yet
   const startedToolIds = new Set<string>(); // every call this invoke opened a tool.start for
@@ -451,6 +500,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
     if (msgId === undefined) return;
     for (const id of openTextIds) a.textEnd(id, msgId);
     openTextIds.clear();
+    textById.clear();
     for (const id of openReasoningIds) a.reasoningEnd(id, msgId);
     openReasoningIds.clear();
   }
@@ -493,6 +543,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         const id = str(part["id"]);
         if (id === undefined) break;
         openTextIds.add(id);
+        textById.set(id, "");
         // The part's providerMetadata bag rides text.start/text.end verbatim.
         // Load-bearing case: OpenAI's gpt-5.5+ `phase` ("commentary" |
         // "final_answer") surfaces as providerMetadata.openai.phase on both
@@ -545,6 +596,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
             return;
           }
         }
+        textById.set(id, (textById.get(id) ?? "") + text);
         a.textDelta(id, msg, text, { cumulative: false });
         return;
       }
@@ -552,8 +604,21 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         const id = str(part["id"]);
         if (id === undefined) break;
         openTextIds.delete(id);
+        const blockText = textById.get(id) ?? "";
+        textById.delete(id);
         const meta = partProviderMeta(part); // see text-start
-        a.textEnd(id, ensureMessage(), meta !== undefined ? { providerMetadata: meta } : undefined);
+        // ai>=7.0.138: `citations` on text-end. URL citations ride the
+        // STREAMED-text citations carrier; the rest ride ext.vercel.citations.
+        const split = Array.isArray(part["citations"]) ? splitCitations(part["citations"], blockText) : undefined;
+        const fields = {
+          ...(meta !== undefined ? { providerMetadata: meta } : {}),
+          ...(split !== undefined && split.citations.length > 0 ? { citations: split.citations } : {}),
+        };
+        const msg = ensureMessage();
+        a.textEnd(id, msg, Object.keys(fields).length > 0 ? fields : undefined);
+        if (split !== undefined && split.unmapped.length > 0) {
+          a.emitExt(EXT_VENDOR, "citations", { textId: id, citations: safeJson(split.unmapped) });
+        }
         return;
       }
 
@@ -617,6 +682,13 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
             ? { providerExecuted: part["providerExecuted"] }
             : {}),
         });
+        // ai>=7.0.142: `inputEncoding` ("json" | "text"; absent = JSON) says how
+        // this call's tool-input-delta text is encoded ("text": raw, e.g. a
+        // custom tool). tool.start has no member for it, so it rides
+        // ext.vercel.input-encoding beside the call, verbatim.
+        if (part["inputEncoding"] !== undefined) {
+          a.emitExt(EXT_VENDOR, "input-encoding", { toolCallId: id, inputEncoding: safeJson(part["inputEncoding"]) });
+        }
         return;
       }
       case "tool-input-delta": {
@@ -644,6 +716,12 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
             name,
             messageId: ensureMessage(),
             ...(typeof part["dynamic"] === "boolean" ? { dynamic: part["dynamic"] } : {}),
+            // A provider-executed call (a provider tool such as web search)
+            // must say so on its tool.start, streamed or not: a client MUST
+            // NOT execute it (SPEC tool.start providerExecuted).
+            ...(typeof part["providerExecuted"] === "boolean"
+              ? { providerExecuted: part["providerExecuted"] }
+              : {}),
           });
           a.toolArgsDelta(toolCallId, JSON.stringify(input), { cumulative: false });
         }
@@ -870,6 +948,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
       stepId,
       msgId,
       openTextIds: [...openTextIds],
+      textById: [...textById],
       openReasoningIds: [...openReasoningIds],
       pendingToolIds: [...pendingToolIds],
       startedToolIds: [...startedToolIds],
@@ -886,6 +965,8 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
     msgId = s.msgId;
     openTextIds.clear();
     for (const id of s.openTextIds) openTextIds.add(id);
+    textById.clear();
+    for (const [k, v] of s.textById) textById.set(k, v);
     openReasoningIds.clear();
     for (const id of s.openReasoningIds) openReasoningIds.add(id);
     pendingToolIds.clear();

@@ -1,0 +1,6 @@
+{
+  "name": "web-search-gpt61sol",
+  "prompt": "Search the web for the official Node.js release schedule page and tell me, in two sentences, which Node.js major version is the current Active LTS line. Cite the page you used.",
+  "steer": "You MUST use the web_search tool before answering, and you MUST cite the source page inline.",
+  "vercelWebSearch": true
+}

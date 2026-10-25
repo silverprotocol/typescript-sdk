@@ -260,6 +260,9 @@ const scenarios: Array<{ scenario: string; framework: "claude" | "openai" | "adk
   { scenario: "echo-gpt61sol", framework: "vercel" },
   { scenario: "echo-haiku55", framework: "claude" },
   { scenario: "echo-sonnet55", framework: "claude" },
+  // 2026-10-25: the vercel web-search seed (text-end citations), enrolled at
+  // capture time (capture-time coverage.json is computed against EMPTY guard maps).
+  { scenario: "web-search-gpt61sol", framework: "vercel" },
 ];
 
 describe.runIf(process.env["REGEN"] === "1")("snapshot regeneration", () => {

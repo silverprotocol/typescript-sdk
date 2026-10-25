@@ -283,7 +283,7 @@ async function freePort(): Promise<number> {
  */
 export const KNOB_SUPPORT: Readonly<
   Record<
-    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "adkCrossSessionState" | "adkSafetySettings" | "adkStreamingMode" | "claudeSubagents" | "openaiHandoff" | "openaiHandoffs" | "adkLive",
+    "preToolUseDecision" | "resumeFrom" | "toolApproval" | "adkWorkflow" | "adkStateScript" | "adkCrossSessionState" | "adkSafetySettings" | "adkStreamingMode" | "claudeSubagents" | "openaiHandoff" | "openaiHandoffs" | "adkLive" | "vercelWebSearch",
     { frameworks: readonly Framework[]; proof?: string | Partial<Record<Framework, string>> }
   >
 > = {
@@ -301,6 +301,7 @@ export const KNOB_SUPPORT: Readonly<
   openaiHandoff: { frameworks: ["openai"], proof: "openaiHandoffAgent" },
   openaiHandoffs: { frameworks: ["openai"], proof: "openaiHandoffAgents" },
   adkLive: { frameworks: ["adk"], proof: "runAdkLiveCapture" },
+  vercelWebSearch: { frameworks: ["vercel"], proof: "VERCEL_WEB_SEARCH_TOOL" },
 };
 
 /**

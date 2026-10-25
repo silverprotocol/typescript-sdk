@@ -677,6 +677,16 @@ describe("adkSafetySettings: the knob guard", () => {
   });
 });
 
+describe("vercelWebSearch: the knob guard", () => {
+  const scenario = Scenario.parse({ name: "web-search", prompt: "x", vercelWebSearch: true });
+
+  it("passes on a vercel agent that exports VERCEL_WEB_SEARCH_TOOL, fails without it or off vercel", () => {
+    expect(() => assertKnobsHonored(scenario, "vercel", { VERCEL_WEB_SEARCH_TOOL: "web_search" })).not.toThrow();
+    expect(() => assertKnobsHonored(scenario, "vercel", {})).toThrow(/does not export VERCEL_WEB_SEARCH_TOOL/);
+    expect(() => assertKnobsHonored(scenario, "openai", { VERCEL_WEB_SEARCH_TOOL: "x" })).toThrow(/only the vercel capture agent honors/);
+  });
+});
+
 describe("adkStreamingMode: the knob guard", () => {
   const scenario = Scenario.parse({ name: "sse-run", prompt: "x", adkStreamingMode: "sse" });
 

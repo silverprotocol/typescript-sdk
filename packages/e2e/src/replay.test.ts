@@ -505,6 +505,12 @@ const VERCEL_SEEDS = [
   // it, so the request sends none. The model chose not to reason on this echo
   // (0 reasoning tokens), unlike echo-gpt6sol's one reasoning block.
   "echo-gpt61sol",
+  // 2026-10-25: OpenAI's provider-executed web search on the vercel facet
+  // (gpt-6.1-sol @ ai 7.0.146 / @ai-sdk/openai 4.0.98, the vercelWebSearch
+  // knob): two provider-executed web_search calls, 36 `source` parts (frame
+  // carry), and one text-end with two url `citations`, which fold onto the
+  // text block through text.end.citations.
+  "web-search-gpt61sol",
   // 2026-09-23 (capture backlog "Vercel parallel tool calls"): two MCP tools
   // called in ONE step (echo + find_doc), gpt-6-sol @ ai 7.0.111 /
   // @ai-sdk/openai 4.0.72. The wire is two back-to-back tool-input lifecycles

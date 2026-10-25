@@ -2162,7 +2162,7 @@ describe("per-native guard: a throw mid-part discards that part's batch, emits o
     const containers = [...factory.matchAll(/^  const (\w+)(?::[^=]+)? = new (?:Set|Map)\b/gm)].map((m) => m[1]!);
     const locals = [...lets, ...containers];
     expect(locals.sort()).toEqual(
-      ["deniedReasons", "msgId", "openReasoningIds", "openTextIds", "pendingToolIds", "startedToolIds", "stashedError", "stepId", "stepIndex", "turnClosed", "turnCounter", "turnId"],
+      ["deniedReasons", "msgId", "openReasoningIds", "openTextIds", "pendingToolIds", "startedToolIds", "stashedError", "stepId", "stepIndex", "textById", "turnClosed", "turnCounter", "turnId"],
     );
     const body = (signature: string): string => {
       const i = factory.indexOf(signature);
@@ -2575,5 +2575,117 @@ describe("an error object holding a member named __proto__ renders to message te
     expect(texts.length).toBeGreaterThan(0); // non-vacuity: the object error is rendered as JSON text
     expect(texts.some((t) => own(JSON.parse(t)).length > 0)).toBe(true); // the text carries the serialized member
     expect(planted.map(parsedLessMember)).toEqual(control.map(parsedLessMember));
+  });
+});
+
+describe("text-end citations and tool-input-start inputEncoding (ai>=7.0.138 / 7.0.142)", () => {
+  // The @ai-sdk/openai 4.0.98 shape: mapOpenAIResponsesCitations turns a
+  // url_citation into a url source with offsets (no citedText), and a
+  // file_citation into a document source.
+  const URL_CIT = {
+    source: { type: "source", sourceType: "url", id: "https://example.com/a", url: "https://example.com/a", title: "A" },
+    startIndex: 6,
+    endIndex: 11,
+  };
+  const DOC_CIT = {
+    source: {
+      type: "source",
+      sourceType: "document",
+      id: "file_1",
+      mediaType: "text/plain",
+      title: "notes.txt",
+      filename: "notes.txt",
+      providerMetadata: { openai: { type: "file_citation", fileId: "file_1", index: 3 } },
+    },
+  };
+  const textParts = (end: Record<string, unknown>) => [
+    ...STEP,
+    { type: "text-start", id: "t1" },
+    { type: "text-delta", id: "t1", text: "Hello " },
+    { type: "text-delta", id: "t1", text: "world." },
+    { type: "text-end", id: "t1", ...end },
+    { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 },
+    { type: "finish", finishReason: "stop", totalUsage: USAGE },
+  ];
+
+  it("maps a url citation onto text.end.citations, citedText cut from the block text, and folds it onto the block", () => {
+    const out = run(textParts({ citations: [URL_CIT] }));
+    expectAllParse(out);
+    const end = out.find((e) => e.type === "text.end") as { citations?: unknown };
+    expect(end.citations).toEqual([
+      { kind: "url", url: "https://example.com/a", citedText: "world", indexFrame: "response", title: "A", startIndex: 6, endIndex: 11 },
+    ]);
+    expect(out.some((e) => e.type.startsWith("ext."))).toBe(false);
+    const r = new Reducer();
+    for (const e of out) r.push(e);
+    expect(r.needsResync).toBe(false);
+    const block = r.result().messages.flatMap((m) => m.content).find((b) => b.type === "text") as { citations?: unknown };
+    expect(block.citations).toEqual(end.citations);
+  });
+
+  it("keeps a provider's own citedText, and an invalid offset range yields citedText \"\"", () => {
+    const own = { ...URL_CIT, citedText: "quoted passage" };
+    const wide = { ...URL_CIT, startIndex: 3, endIndex: 400 };
+    const out = run(textParts({ citations: [own, wide] }));
+    const end = out.find((e) => e.type === "text.end") as { citations?: { citedText: string }[] };
+    expect(end.citations?.map((c) => c.citedText)).toEqual(["quoted passage", ""]);
+    expectAllParse(out);
+  });
+
+  it("carries a citation with no url target (a document source, a malformed entry) verbatim on ext.vercel.citations", () => {
+    const bad = { source: { sourceType: "url", url: "https://example.com/b" }, startIndex: "6" };
+    const out = run(textParts({ citations: [URL_CIT, DOC_CIT, bad, 7] }));
+    expectAllParse(out);
+    const end = out.find((e) => e.type === "text.end") as { citations?: unknown[] };
+    expect(end.citations).toHaveLength(1);
+    const ext = out.filter((e) => e.type.startsWith("ext."));
+    expect(ext).toHaveLength(1);
+    expect(ext[0]).toMatchObject({ type: "ext.vercel.citations", textId: "t1", citations: [DOC_CIT, bad, 7] });
+    // the ext follows its text.end
+    expect(out.indexOf(ext[0]!)).toBe(out.findIndex((e) => e.type === "text.end") + 1);
+  });
+
+  it("only document citations: text.end carries no citations member; the provider bag still rides", () => {
+    const meta = { openai: { itemId: "m1", annotations: [{ type: "file_citation" }] } };
+    const out = run(textParts({ citations: [DOC_CIT], providerMetadata: meta }));
+    const end = out.find((e) => e.type === "text.end") as Record<string, unknown>;
+    expect("citations" in end).toBe(false);
+    expect(end["providerMetadata"]).toEqual(meta);
+    expect(out.filter((e) => e.type.startsWith("ext."))).toHaveLength(1);
+  });
+
+  it("no citations member, or an empty array: byte-identical to the pre-7.0.138 normalization", () => {
+    const base = JSON.stringify(run(textParts({})));
+    expect(JSON.stringify(run(textParts({ citations: [] })))).toBe(base);
+    expect(JSON.stringify(run(textParts({ citations: "nope" })))).not.toContain('"citations"');
+  });
+
+  it("a NON-streamed provider-executed tool-call keeps providerExecuted on its synthesized tool.start", () => {
+    const call = { type: "tool-call", toolCallId: "ws_1", toolName: "web_search", input: {}, providerExecuted: true };
+    const out = run([...STEP, call, { type: "finish-step", finishReason: "stop", usage: USAGE, response: RESPONSE_S1 }, { type: "finish", finishReason: "stop", totalUsage: USAGE }]);
+    expectAllParse(out);
+    expect(out.find((e) => e.type === "tool.start")).toMatchObject({ toolCallId: "ws_1", providerExecuted: true });
+    const plain = run([...STEP, { ...call, providerExecuted: undefined }]);
+    expect("providerExecuted" in (plain.find((e) => e.type === "tool.start") as object)).toBe(false);
+  });
+
+  it("carries tool-input-start inputEncoding on ext.vercel.input-encoding, after the tool.start", () => {
+    const parts = [
+      ...STEP,
+      { type: "tool-input-start", id: "call_1", toolName: "patch", inputEncoding: "text" },
+      { type: "tool-input-delta", id: "call_1", delta: "*** Begin" },
+      { type: "tool-input-end", id: "call_1" },
+      { type: "tool-call", toolCallId: "call_1", toolName: "patch", input: "*** Begin" },
+      { type: "finish-step", finishReason: "tool-calls", usage: USAGE, response: RESPONSE_S1 },
+      { type: "finish", finishReason: "tool-calls", totalUsage: USAGE },
+    ];
+    const out = run(parts);
+    expectAllParse(out);
+    const ext = out.filter((e) => e.type.startsWith("ext."));
+    expect(ext).toHaveLength(1);
+    expect(ext[0]).toMatchObject({ type: "ext.vercel.input-encoding", toolCallId: "call_1", inputEncoding: "text" });
+    expect(out.indexOf(ext[0]!)).toBe(out.findIndex((e) => e.type === "tool.start") + 1);
+    const plain = run(parts.map((p) => ("inputEncoding" in p ? { ...p, inputEncoding: undefined } : p)));
+    expect(plain.some((e) => e.type.startsWith("ext."))).toBe(false);
   });
 });

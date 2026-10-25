@@ -3593,5 +3593,21 @@
     "frameworks": [
       "claude"
     ]
+  },
+  {
+    "path": "[*].providerExecuted",
+    "reason": "vercel: the provider-executed flag ai repeats on a provider tool's tool-input-end, tool-call and tool-result parts (OpenAI web search, live web-search-gpt61sol, 2026-10-25). The facet reads it once per call: from tool-input-start onto tool.start.providerExecuted, or from the tool-call when no tool-input-start came (the synthesized tool.start); the repeats name the same toolCallId, so nothing is lost.",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
+  },
+  {
+    "path": "[*].totalUsage.raw.input_tokens_details.cached_tokens",
+    "reason": "vercel: the provider's raw Responses usage bag on finish.totalUsage.raw (ai>=7.0.129 keeps raw). mapUsage reads the typed counters; this count is the typed totalUsage.inputTokenDetails.cacheReadTokens, which the facet carries. Reported only when its value (0 on web-search-gpt61sol, 2026-10-25) matches no emitted value.",
+    "reviewed": "any",
+    "frameworks": [
+      "vercel"
+    ]
   }
 ]

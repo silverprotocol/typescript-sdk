@@ -133,6 +133,9 @@ export interface CaptureRunInput {
    *  one response can carry more than one transfer. See scenario.ts
    *  `openaiHandoffs`. */
   handoffs?: ReadonlyArray<{ name: string; instructions: string; handoffDescription?: string }>;
+  /** vercel-ai only: add OpenAI's provider-executed web search tool. See
+   *  scenario.ts `vercelWebSearch`. */
+  webSearch?: boolean;
 }
 
 /** The LLM/process boundary contract every capture agent implements. */

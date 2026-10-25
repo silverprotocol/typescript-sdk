@@ -220,6 +220,11 @@ export const Scenario = z.object({
   // fails loud instead of silently capturing a single-target run. Use one of
   // the two knobs, not both.
   openaiHandoffs: z.array(HandoffTarget).min(2).optional(),
+  // Web-search knob (vercel-ai only, 2026-10-25): the agent adds the OpenAI
+  // Responses provider-executed web search tool (`openai.tools.webSearch()`)
+  // beside the MCP tools, so the stream carries the provider's `source` parts
+  // and text-end `citations` (ai>=7.0.138, @ai-sdk/openai>=4.0.92).
+  vercelWebSearch: z.literal(true).optional(),
   // Live (bidi) knob (google-adk only, 2026-09-25): the capture runs
   // runner.runLive with a LiveRequestQueue (agents/google-adk/live.ts).
   // `prompt` is the first user content. `bargeIn` is one barge-in or a list:
