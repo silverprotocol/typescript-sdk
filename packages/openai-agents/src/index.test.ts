@@ -4799,6 +4799,17 @@ describe("createOpenaiNormalizer — hosted call inputs and results", () => {
     });
   });
 
+  it("a failed image_generation call's error object closes with outcome error, its message as errorText, its type as errorCode, and the object in providerMetadata", () => {
+    const error = { code: "moderation_blocked", message: "Image request was rejected.", param: null, type: "image_generation_user_error", moderation_details: { categories: ["violence"], moderation_stage: "input" } };
+    const evs = hostedRound(
+      { type: "image_generation_call", id: "ig_3", status: "failed", result: null, error },
+      { type: "hosted_tool_call", id: "ig_3", name: "image_generation_call", status: "failed", providerData: { type: "image_generation_call", id: "ig_3", error } },
+    );
+    const done = first(evs, "tool.done");
+    expect(done).toMatchObject({ outcome: "error", isError: true, errorText: "Image request was rejected.", errorCode: "image_generation_user_error", content: [] });
+    expect(Reflect.get(done ?? {}, "providerMetadata")).toEqual({ status: "failed", error });
+  });
+
   it("an image_generation result lands as a file block, not text", () => {
     const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk";
     const fields = { revised_prompt: "a red cube", size: "1024x1024", quality: "high", background: "opaque", action: "generate" };
