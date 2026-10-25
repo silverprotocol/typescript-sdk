@@ -278,6 +278,7 @@ describe("createOpenaiNormalizer — unmapped usage details ride ext.openai.unpa
   };
   const usageDetails = (evs: AgEvent[]): AgEvent[] =>
     evs.filter((e) => e.type === "ext.openai.unparsed" && Reflect.get(e, "name") === "usage-details");
+  const isRecord = (v: unknown): v is { [k: string]: unknown } => typeof v === "object" && v !== null && !Array.isArray(v);
 
   it("flat unmapped detail keys ride one ext.openai.unparsed {name:\"usage-details\", raw}, mapped keys omitted, before turn.done", () => {
     const evs = run({
@@ -336,6 +337,24 @@ describe("createOpenaiNormalizer — unmapped usage details ride ext.openai.unpa
     expect(raw).toEqual({ input_tokens_details: { audio_tokens: 1 } });
     expect(JSON.stringify(raw)).not.toContain("polluted");
     expect(Reflect.get({}, "polluted")).toBeUndefined();
+    // The planted key is neither carried nor written as a prototype: the
+    // carried object's prototype is Object.prototype (a same-process consumer
+    // reads inherited members through `in`, for…in and getPrototypeOf).
+    const details: unknown = Reflect.get(isRecord(raw) ? raw : {}, "input_tokens_details");
+    expect(Object.getPrototypeOf(details)).toBe(Object.prototype);
+    expect(Reflect.get(isRecord(details) ? details : {}, "polluted")).toBeUndefined();
+  });
+
+  it("an own __proto__ key inside a nested unmapped breakdown is not carried and plants no prototype", () => {
+    const planted: JsonValue = JSON.parse('{"cached_tokens":1,"by_modality":{"__proto__":{"polluted":true},"text":2}}');
+    const evs = run({ input_tokens: 3, input_tokens_details: planted, output_tokens: 1, total_tokens: 4 });
+    const raw = Reflect.get(usageDetails(evs)[0] ?? {}, "raw");
+    expect(raw).toEqual({ input_tokens_details: { by_modality: { text: 2 } } });
+    const details: unknown = Reflect.get(isRecord(raw) ? raw : {}, "input_tokens_details");
+    const byModality: unknown = Reflect.get(isRecord(details) ? details : {}, "by_modality");
+    expect(Object.getPrototypeOf(details)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(byModality)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(byModality, "__proto__")).toBe(false);
   });
 
   it("negative control: usage whose every detail key is mapped emits no usage-details carry", () => {
