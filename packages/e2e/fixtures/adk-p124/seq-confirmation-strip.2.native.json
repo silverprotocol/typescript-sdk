@@ -1,0 +1,92 @@
+[
+  {
+    "invocationId": "e-6d325fb3-e934-4b46-a7fd-a3e0972604f8",
+    "author": "agent",
+    "id": "nSwiPC12",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792930566500,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "name": "delete_file",
+            "args": {
+              "path": "/tmp/x"
+            },
+            "id": "adk-01a39939-86e5-4518-9ef7-dea24ae68ab6"
+          }
+        }
+      ]
+    },
+    "turnComplete": true
+  },
+  {
+    "invocationId": "e-6d325fb3-e934-4b46-a7fd-a3e0972604f8",
+    "author": "agent",
+    "content": {
+      "parts": [
+        {
+          "functionCall": {
+            "name": "adk_request_confirmation",
+            "args": {
+              "originalFunctionCall": {
+                "name": "delete_file",
+                "args": {
+                  "path": "/tmp/x"
+                },
+                "id": "adk-01a39939-86e5-4518-9ef7-dea24ae68ab6"
+              },
+              "toolConfirmation": {
+                "hint": "Please approve or reject the tool call delete_file() by responding with a FunctionResponse with an expected ToolConfirmation payload.",
+                "confirmed": false
+              }
+            },
+            "id": "adk-95651a7b-094c-464b-ba37-4dcccad0b2b3"
+          }
+        }
+      ],
+      "role": "user"
+    },
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [
+      "adk-95651a7b-094c-464b-ba37-4dcccad0b2b3"
+    ],
+    "id": "usZpCFj2",
+    "timestamp": 1792930566500
+  },
+  {
+    "invocationId": "e-6d325fb3-e934-4b46-a7fd-a3e0972604f8",
+    "author": "next",
+    "id": "E2KLrSAD",
+    "actions": {
+      "stateDelta": {},
+      "artifactDelta": {},
+      "requestedAuthConfigs": {},
+      "requestedToolConfirmations": {}
+    },
+    "longRunningToolIds": [],
+    "timestamp": 1792930566500,
+    "content": {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Done."
+        }
+      ]
+    },
+    "turnComplete": true,
+    "finishReason": "STOP"
+  }
+]

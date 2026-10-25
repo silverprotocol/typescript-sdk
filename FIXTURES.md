@@ -275,6 +275,25 @@ the engine itself generates (carrying `state`, `nonce` and a PKCE challenge),
 with every credential member seeded by a `SEED_` placeholder. It has its own
 gate, `GEN_ADK_AUTH_URI=1`, so regenerating it never rewrites the others.
 
+`packages/e2e/fixtures/adk-p124/` holds the engine-built vectors of AgJSON
+§8.0 item 26's pause signal when a second agent runs after the pausing one:
+seven shapes, two instances each (`<shape>.<1|2>.native.json`), built by the
+REAL `@google/adk` 2.3.0 engine with stub models (no key, no network). Each
+shape is a SequentialAgent whose first sub-agent raises an ask and whose second
+answers: `seq-credential`, `seq-confirmation` and `seq-request-input` are
+ADK's own stream; each `-strip` variant runs the same with a host plugin whose
+`onEventCallback` clears the pause-end members from the event the runner
+yields and stores; `sse-seq-credential-strip` is the credential shape under
+SSE through ADK's own Gemini class with its transport stubbed, with the same
+plugin. Like `adk-pause/` they are not corpus cassettes (the model is a stub).
+They are regenerated only by `GEN_ADK_P124=1 … adk-p124-fixtures.gen.test.ts`
+and gated by `adk-p124.test.ts`. The runs are not byte-reproducible (event
+ids, UUIDs and timestamps change per run), so the test reads content, not
+bytes. Not producible at the pin: a MODEL-emitted `adk_request_input` on an
+agent without `requestInputTool`, which ADK answers at once with a
+tool-not-found error response, so no ask stays pending. The only
+credential-like string is the fake header name `X-Key`, as in `adk-pause/`.
+
 `packages/e2e/fixtures/adk-abort/` holds ADK runs that a host aborts
 mid-run, built by the REAL `@google/adk` 2.3.0 `InMemoryRunner` and
 `LlmAgent` with a scripted stub model (no key, no network). The host fires
