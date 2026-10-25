@@ -1238,15 +1238,54 @@ function mapUsage(usage: OpenAIResponseUsage | undefined): AgUsage | undefined {
   if (usage.input_tokens !== undefined) u.inputTokens = usage.input_tokens;
   if (usage.output_tokens !== undefined) u.outputTokens = usage.output_tokens;
   if (usage.total_tokens !== undefined) u.totalTokens = usage.total_tokens;
-  if (usage.input_tokens_details?.cached_tokens !== undefined)
-    u.cacheReadTokens = usage.input_tokens_details.cached_tokens;
-  if (usage.input_tokens_details?.cache_write_tokens !== undefined)
-    u.cacheWriteTokens = usage.input_tokens_details.cache_write_tokens;
-  if (usage.output_tokens_details?.reasoning_tokens !== undefined)
-    u.reasoningTokens = usage.output_tokens_details.reasoning_tokens;
+  // A detail counter maps only when it is a number; any other value (a
+  // compatible provider's null) rides the usage-details carry instead
+  // (`unmappedUsageDetails`), never an AgUsage counter.
+  const cached: unknown = usage.input_tokens_details?.cached_tokens;
+  if (typeof cached === "number") u.cacheReadTokens = cached;
+  const cacheWrite: unknown = usage.input_tokens_details?.cache_write_tokens;
+  if (typeof cacheWrite === "number") u.cacheWriteTokens = cacheWrite;
+  const reasoning: unknown = usage.output_tokens_details?.reasoning_tokens;
+  if (typeof reasoning === "number") u.reasoningTokens = reasoning;
   // Provider-reported cost (e.g. OpenRouter `cost`) maps verbatim to costUsd.
   if (usage.cost !== undefined) u.costUsd = usage.cost;
   return u;
+}
+
+/** The detail keys `mapUsage` maps, per detail object (number values only). */
+const MAPPED_USAGE_DETAILS: ReadonlyArray<readonly [field: "input_tokens_details" | "output_tokens_details", mapped: ReadonlySet<string>]> = [
+  ["input_tokens_details", new Set(["cached_tokens", "cache_write_tokens"])],
+  ["output_tokens_details", new Set(["reasoning_tokens"])],
+];
+
+/**
+ * The usage-detail entries `mapUsage` leaves unmapped, as received: per detail
+ * object, every key but the mapped ones (a mapped key whose value is not a
+ * number is not mapped, so it rides here), nested values verbatim. openai 7.43.0
+ * types no other detail keys; an OpenAI-compatible provider can send more on
+ * the same wire (a flat `audio_tokens`, a nested `by_modality`). AgUsage has no
+ * field for them, so they ride `ext.openai.unparsed {name:"usage-details", raw}`
+ * beside the mapped usage (SPEC §8.0 graceful degradation), never inside it.
+ * A detail value that is not an object rides whole. `undefined` when nothing
+ * is unmapped, so no empty carry is emitted. A copy via `JsonValue.parse`:
+ * no own `__proto__` key survives (SPEC §13.7).
+ */
+function unmappedUsageDetails(usage: unknown): { [k: string]: JsonValue } | undefined {
+  if (!isJsonObject(usage)) return undefined;
+  const out: { [k: string]: JsonValue } = {};
+  for (const [field, mapped] of MAPPED_USAGE_DETAILS) {
+    const details = usage[field];
+    if (details === undefined || details === null) continue;
+    const copy = JsonValue.parse(details);
+    if (!isJsonObject(copy)) {
+      out[field] = copy;
+      continue;
+    }
+    const rest: { [k: string]: JsonValue } = {};
+    for (const [k, v] of Object.entries(copy)) if (!(mapped.has(k) && typeof v === "number")) rest[k] = v;
+    if (Object.keys(rest).length > 0) out[field] = rest;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 // ─── url_citation annotation → AgCitation ──────────────────────────────────
@@ -2126,6 +2165,8 @@ function createInnerOpenaiNormalizer(invokeStem: string, threadId: string): Norm
         const textStreamIds = Array.from(openTextStreams);
         const reason = ev.response.incomplete_details?.reason;
         const usage = mapUsage(ev.response.usage);
+        const unmappedDetails = unmappedUsageDetails(ev.response.usage);
+        if (unmappedDetails !== undefined) a.emitExt("openai", "unparsed", { name: "usage-details", raw: unmappedDetails });
         // `status` is OPTIONAL upstream and its enum is OPEN ("clients must
         // accept additional values"), so it is read through `unknown` + a typeof
         // guard rather than trusted through the declared union — this is the

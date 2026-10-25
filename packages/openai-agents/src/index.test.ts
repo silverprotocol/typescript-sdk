@@ -257,6 +257,105 @@ describe("createOpenaiNormalizer — cache_write_tokens usage detail (openai ≥
   });
 });
 
+describe("createOpenaiNormalizer — unmapped usage details ride ext.openai.unparsed (SPEC §8.0 graceful degradation)", () => {
+  // openai 7.43.0's ResponseUsage types define only cached_tokens and
+  // cache_write_tokens (input) and reasoning_tokens (output). Every other
+  // detail key here is what an OpenAI-compatible provider can send on the same
+  // Responses wire (flat counters such as audio_tokens, or a nested breakdown,
+  // which @openai/agents 0.21 keeps through a streamed run as a nested
+  // TokenDetails record). AgUsage has no field for them, so they ride one
+  // ext.openai.unparsed beside the mapped usage, never inside it.
+  const usageTurn = (usage: JsonValue): JsonValue[] => [
+    ...TEXT_TURN.slice(0, 8), // through response.output_text.done
+    {
+      type: "raw_model_stream_event",
+      data: { type: "model", event: { type: "response.completed", response: { id: "resp_text_1", status: "completed", usage } } },
+    },
+  ];
+  const run = (usage: JsonValue): AgEvent[] => {
+    const n = createOpenaiNormalizer();
+    return usageTurn(usage).flatMap((e) => n.push(e)).concat(n.flush());
+  };
+  const usageDetails = (evs: AgEvent[]): AgEvent[] =>
+    evs.filter((e) => e.type === "ext.openai.unparsed" && Reflect.get(e, "name") === "usage-details");
+
+  it("flat unmapped detail keys ride one ext.openai.unparsed {name:\"usage-details\", raw}, mapped keys omitted, before turn.done", () => {
+    const evs = run({
+      input_tokens: 9,
+      input_tokens_details: { cached_tokens: 3, cache_write_tokens: 1, audio_tokens: 4 },
+      output_tokens: 6,
+      output_tokens_details: { reasoning_tokens: 2, accepted_prediction_tokens: 1 },
+      total_tokens: 15,
+    });
+    const carried = usageDetails(evs);
+    expect(carried).toHaveLength(1);
+    expect(Reflect.get(carried[0] ?? {}, "raw")).toEqual({
+      input_tokens_details: { audio_tokens: 4 },
+      output_tokens_details: { accepted_prediction_tokens: 1 },
+    });
+    const done = evs.find((e) => e.type === "turn.done");
+    // The mapped usage is unchanged: nothing unmapped lands inside it.
+    expect(Reflect.get(done ?? {}, "usage")).toEqual({
+      cumulative: false, inputTokens: 9, outputTokens: 6, totalTokens: 15, cacheReadTokens: 3, cacheWriteTokens: 1, reasoningTokens: 2,
+    });
+    expect(evs.indexOf(carried[0]!)).toBeLessThan(evs.indexOf(done!));
+  });
+
+  it("a nested unmapped breakdown rides verbatim, nested as received", () => {
+    const byModality = { text: 5, image: { tiles: 2, low: 1 } };
+    const evs = run({ input_tokens: 8, input_tokens_details: { cached_tokens: 0, by_modality: byModality }, output_tokens: 1, total_tokens: 9 });
+    const carried = usageDetails(evs);
+    expect(carried).toHaveLength(1);
+    expect(Reflect.get(carried[0] ?? {}, "raw")).toEqual({ input_tokens_details: { by_modality: byModality } });
+    expect(evs.find((e) => e.type === "turn.done")).toMatchObject({ usage: { inputTokens: 8, cacheReadTokens: 0 } });
+  });
+
+  it("a mapped detail key whose value is not a number maps to no AgUsage counter and rides the carry", () => {
+    // A compatible provider's null counter reaches the facet: @openai/agents
+    // yields the raw response.completed before its own usage parse throws.
+    const evs = run({
+      input_tokens: 2,
+      input_tokens_details: { cached_tokens: null, cache_write_tokens: "1" },
+      output_tokens: 1,
+      output_tokens_details: { reasoning_tokens: null },
+      total_tokens: 3,
+    });
+    expect(Reflect.get(evs.find((e) => e.type === "turn.done") ?? {}, "usage")).toEqual({ cumulative: false, inputTokens: 2, outputTokens: 1, totalTokens: 3 });
+    expect(Reflect.get(usageDetails(evs)[0] ?? {}, "raw")).toEqual({
+      input_tokens_details: { cached_tokens: null, cache_write_tokens: "1" },
+      output_tokens_details: { reasoning_tokens: null },
+    });
+  });
+
+  it("an own __proto__ key in a detail object is not carried (SPEC §13.7) and the rest still rides", () => {
+    // JSON.parse defines an own __proto__ member (an object literal would not).
+    const planted: JsonValue = JSON.parse('{"__proto__":{"polluted":true},"cached_tokens":1,"audio_tokens":1}');
+    expect(Object.prototype.hasOwnProperty.call(planted, "__proto__")).toBe(true);
+    const evs = run({ input_tokens: 2, input_tokens_details: planted, output_tokens: 1, total_tokens: 3 });
+    const raw = Reflect.get(usageDetails(evs)[0] ?? {}, "raw");
+    expect(raw).toEqual({ input_tokens_details: { audio_tokens: 1 } });
+    expect(JSON.stringify(raw)).not.toContain("polluted");
+    expect(Reflect.get({}, "polluted")).toBeUndefined();
+  });
+
+  it("negative control: usage whose every detail key is mapped emits no usage-details carry", () => {
+    const evs = run({
+      input_tokens: 5,
+      input_tokens_details: { cached_tokens: 3, cache_write_tokens: 2 },
+      output_tokens: 2,
+      output_tokens_details: { reasoning_tokens: 1 },
+      total_tokens: 7,
+    });
+    expect(usageDetails(evs)).toHaveLength(0);
+    expect(evs.some((e) => e.type.startsWith("ext.openai."))).toBe(false);
+  });
+
+  it("negative control: usage with no detail objects, or empty ones, emits no usage-details carry", () => {
+    expect(usageDetails(run({ input_tokens: 1, output_tokens: 1, total_tokens: 2 }))).toHaveLength(0);
+    expect(usageDetails(run({ input_tokens: 1, input_tokens_details: {}, output_tokens: 1, output_tokens_details: {}, total_tokens: 2 }))).toHaveLength(0);
+  });
+});
+
 describe("createOpenaiNormalizer — INV-FLUSH truncation (audit M21)", () => {
   it("flush() aborts a dangling turn as stream-truncated when response.completed never arrives (no stashed close)", () => {
     // Truncate BEFORE any native close signal (`response.completed` /
