@@ -2528,7 +2528,7 @@ describe("a member named __proto__ in a native part is dropped at every depth", 
     expect(({} as { x?: unknown }).x).toBeUndefined();
   });
 });
-describe("finishReason 'interrupted' (ai>=7.0.153) closes turn.abort, never turn.done", () => {
+describe("finishReason 'interrupted' (@ai-sdk/openai>=4.0.100) closes turn.abort, never turn.done", () => {
   // Captured 2026-10-26 from ai@7.0.153 + @ai-sdk/openai@4.0.102 (keyless:
   // a stubbed fetch serving a Responses stream that ends after one text
   // delta, with no response.completed). `performance` trimmed.
