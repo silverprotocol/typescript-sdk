@@ -690,40 +690,69 @@ function runCheck(sources) {
       schemaInputKinds: schemaInputKinds.length,
       specUsageFields: specUsage.length,
       revisionTag: heads.tag,
+      revisionHead: heads.head,
       specVersion: heads.version,
       schemaUsageFields: tsUsage.length,
     },
   };
 }
 
-// ─── 7. The revision-note head and the version sites follow AGJSON_VERSION (rc.1) ─────────────
-// G-rc1-a: §15 carries exactly one entry head (`**<tag> (`) for the prerelease tag of AGJSON_VERSION; no
-// draft entry follows draft.8, the closing draft; an rc.K head directly follows the entry before it (draft.8
-// for rc.1, else rc.K−1). G-rc1-b: the header's `Spec version` and §12's current-version sentence both read
-// AGJSON_VERSION. A version with no prerelease tag is a finding until the release's note head is defined.
+// ─── 7. The revision-note head and the version sites follow AGJSON_VERSION (rc.1; stable heads 1.1) ─
+// G-rc1-a: §15 carries exactly one entry head for AGJSON_VERSION: `**<tag> (` for a prerelease (draft.N /
+// rc.N), `**X.Y.Z (` for a stable version. No draft entry follows draft.8, the closing draft. An rc.K head
+// directly follows the entry before it (draft.8 for rc.1, else rc.K−1). No draft or rc head follows a stable
+// head. A stable version other than X.0.0 needs a stable head for an earlier version before its own (1.1.0
+// follows 1.0.0, per the GA plan). Still to come: whether a stable head must DIRECTLY follow its predecessor,
+// and which entry that is. G-rc1-b: the header's `Spec version` and §12's current-version sentence both read
+// AGJSON_VERSION. A tag-less version that is not X.Y.Z is a finding.
+const REVISION_HEAD = /^\*\*((?:draft|rc)\.\d+|\d+\.\d+\.\d+) \(/;
+const STABLE = /^(\d+)\.(\d+)\.(\d+)$/;
+function compareStable(a, b) {
+  const x = STABLE.exec(a).slice(1).map(Number);
+  const y = STABLE.exec(b).slice(1).map(Number);
+  for (let k = 0; k < 3; k++) if (x[k] !== y[k]) return x[k] - y[k];
+  return 0;
+}
 function checkRevisionHeads(specText, tsText) {
   const findings = [];
   const m = /export const AGJSON_VERSION = "([^"]+)"/.exec(tsText);
-  if (!m) return { findings: ['  G-rc1-a: agjson.ts has no `export const AGJSON_VERSION = "…"`'], version: null, tag: null };
+  if (!m) return { findings: ['  G-rc1-a: agjson.ts has no `export const AGJSON_VERSION = "…"`'], version: null, tag: null, head: null };
   const version = m[1];
   const dash = version.indexOf("-");
   const tag = dash < 0 ? "" : version.slice(dash + 1);
+  const head = tag === "" ? version : tag;
   const lines = specText.split("\n");
   const heads = [];
-  lines.forEach((l, i) => { if (/^\*\*(draft|rc)\.\d+ \(/.test(l)) heads.push({ l, i }); });
-  if (tag === "") {
-    findings.push(`  G-rc1-a: AGJSON_VERSION ${version} has no prerelease tag; define the release note's entry head and extend check 7`);
+  lines.forEach((l, i) => {
+    const h = REVISION_HEAD.exec(l);
+    if (h) heads.push({ l, i, label: h[1], stable: STABLE.test(h[1]) });
+  });
+  const own = heads.filter((h) => h.label === head);
+  if (tag === "" && !STABLE.test(version)) {
+    findings.push(`  G-rc1-a: AGJSON_VERSION ${version} is neither a prerelease (X.Y.Z-tag) nor a stable X.Y.Z version`);
+  } else if (own.length !== 1) {
+    findings.push(`  G-rc1-a: §15 has ${own.length} entry head(s) \`**${head} (\` for AGJSON_VERSION ${version}; expected exactly 1`);
+  } else if (tag === "") {
+    const [, , minor, patch] = STABLE.exec(version).map(Number);
+    if (minor > 0 || patch > 0) {
+      const earlier = heads.filter((h) => h.stable && h.i < own[0].i && compareStable(h.label, version) < 0);
+      if (earlier.length === 0) findings.push(`  G-rc1-a: the ${version} entry has no stable predecessor: §15 carries no \`**X.Y.Z (\` head for an earlier version before it`);
+    }
   } else {
-    const own = heads.filter((h) => h.l.startsWith(`**${tag} (`));
-    if (own.length !== 1) findings.push(`  G-rc1-a: §15 has ${own.length} entry head(s) \`**${tag} (\` for AGJSON_VERSION ${version}; expected exactly 1`);
     const rc = /^rc\.(\d+)$/.exec(tag);
-    if (rc && own.length === 1) {
+    if (rc) {
       const prev = Number(rc[1]) === 1 ? "draft.8" : `rc.${Number(rc[1]) - 1}`;
       let j = own[0].i - 1;
       while (j >= 0 && lines[j].trim() === "") j--;
       if (j < 0 || !lines[j].startsWith(`**${prev} (`)) {
         findings.push(`  G-rc1-a: the ${tag} entry does not directly follow the ${prev} entry (previous non-blank line: ${j >= 0 ? lines[j].slice(0, 48) : "none"}…)`);
       }
+    }
+  }
+  const firstStable = heads.find((h) => h.stable);
+  if (firstStable) {
+    for (const h of heads) {
+      if (!h.stable && h.i > firstStable.i) findings.push(`  G-rc1-a: a ${h.label} entry at SPEC.md:${h.i + 1} follows the stable ${firstStable.label} entry at SPEC.md:${firstStable.i + 1}`);
     }
   }
   for (const h of heads) {
@@ -734,7 +763,7 @@ function checkRevisionHeads(specText, tsText) {
   const current = [...specText.matchAll(/The current spec version is `([^`]+)`/g)].map((x) => x[1]);
   if (header.length !== 1 || header[0] !== version) findings.push(`  G-rc1-b: the header's Spec version reads ${header.join(", ") || "nothing"}; AGJSON_VERSION is ${version}`);
   if (current.length !== 1 || current[0] !== version) findings.push(`  G-rc1-b: §12's current spec version reads ${current.join(", ") || "nothing"}; AGJSON_VERSION is ${version}`);
-  return { findings, version, tag };
+  return { findings, version, tag, head };
 }
 
 async function loadRealSources() {
@@ -766,7 +795,7 @@ async function main() {
   console.log(
     `✓ SPEC ↔ agjson.ts wire types in sync (${checked.specEventTypes} AgEvent.type literal(s), ${checked.specInputKinds} AgInput.kind literal(s), ${checked.schemaUsageFields} AgUsage field(s) checked); §12 closed-set table: ${checked.tableRows} row(s) ↔ ${checked.enumSites} z.enum site(s); SPEC unions: ${checked.specUnions} bound through the table, ${checked.enumSitesPinned} of ${checked.enumSites6} z.enum site(s) pinned — check 5 keys ${checked.enumSites}, this keyer also reaches AgCitationUnit, AgCitationBounds, AgRunConfig.toolChoice and AgMcpAppViewMessage.params.mode)`,
   );
-  console.log(`✓ revision heads: §15 carries one \`**${checked.revisionTag} (\` entry head; the header and §12 read ${checked.specVersion} (= AGJSON_VERSION)`);
+  console.log(`✓ revision heads: §15 carries one \`**${checked.revisionHead} (\` entry head; the header and §12 read ${checked.specVersion} (= AGJSON_VERSION)`);
   if (census) {
     console.log("\n§12-bound census (SPEC union → resolved location [rule] → row line(s) → compared z.enum site(s)):");
     for (const e of checked.census.receipt) console.log(`  SPEC.md:${String(e.line).padStart(4)}  ${e.location}  →  ${e.mapped}  [${e.rule}]  rows ${e.rows.join(",") || "—"}  sites ${e.sites.join(" ") || "—"}`);
@@ -944,6 +973,51 @@ async function main() {
     }
     console.log("\n✓ --self-test: check 7 — a duplicated entry head and a mismatched §12 version each produced the expected drift:");
     for (const line of [...dupHits, ...verHits]) console.log(line);
+    // Check 7, stable heads (1.1): promote an in-memory copy to a stable X.Y.Z version. Two controls stay
+    // green: 1.0.0 with its head after the last prerelease entry, and 1.1.0 with a 1.0.0 head before it.
+    // Each plant must surface its own finding: missing, duplicated, an rc head after a stable one, no stable
+    // predecessor (absent, placed after, or only a later version), and a tag-less version that is not X.Y.Z.
+    const cur = checked.specVersion;
+    const promote = (v, tail) => ({
+      ts: sources.ts.replace(/export const AGJSON_VERSION = "[^"]+"/, () => `export const AGJSON_VERSION = "${v}"`),
+      spec: sources.spec
+        .replace(`**Spec version: \`${cur}\`**`, () => `**Spec version: \`${v}\`**`)
+        .replace(`The current spec version is \`${cur}\``, () => `The current spec version is \`${v}\``)
+        .replace(/\s*$/, () => `\n\n${tail.join("\n\n")}\n`),
+    });
+    const H100 = "**1.0.0 (2099-01-01) — self-test stable.** Text.";
+    const H110 = "**1.1.0 (2099-02-01) — self-test minor.** Text.";
+    const RC = "**rc.99 (2099-03-01) — self-test late rc.** Text.";
+    const controls7 = [["1.0.0", [H100]], ["1.1.0", [H100, H110]]];
+    for (const [v, tail] of controls7) {
+      const t = promote(v, tail);
+      if (t.ts === sources.ts || !t.spec.includes(`**Spec version: \`${v}\`**`) || !t.spec.includes(`The current spec version is \`${v}\``)) {
+        console.error(`\n✖ --self-test: could not promote the check-7 control to ${v}`);
+        process.exit(1);
+      }
+      const f = runCheck(t).findings;
+      if (f.length !== 0) { console.error(`\n✖ --self-test: the stable ${v} control must produce no finding:`); for (const line of f) console.error(line); process.exit(1); }
+    }
+    const plants7 = [
+      ["missing", "1.1.0", [H100], "§15 has 0 entry head(s) `**1.1.0 (`"],
+      ["duplicated", "1.1.0", [H100, H110, H110], "§15 has 2 entry head(s) `**1.1.0 (`"],
+      ["rc after stable", "1.1.0", [H100, H110, RC], "a rc.99 entry at SPEC.md:"],
+      ["no stable predecessor", "1.1.0", [H110], "the 1.1.0 entry has no stable predecessor"],
+      ["predecessor after", "1.1.0", [H110, H100], "the 1.1.0 entry has no stable predecessor"],
+      ["predecessor not earlier", "1.1.0", ["**1.2.0 (2099-01-15) — self-test later.** Text.", H110], "the 1.1.0 entry has no stable predecessor"],
+      ["not X.Y.Z", "1.1", [H100, H110], "AGJSON_VERSION 1.1 is neither a prerelease"],
+    ];
+    const stableLines = [];
+    for (const [name, v, tail, expect] of plants7) {
+      const hits = runCheck(promote(v, tail)).findings.filter((l) => l.includes("G-rc1-a"));
+      if (!hits.some((l) => l.includes(expect))) {
+        console.error(`\n✖ --self-test: the check-7 plant "${name}" did not surface \`${expect}\` (got: ${hits.join(" | ") || "nothing"})`);
+        process.exit(1);
+      }
+      stableLines.push(...hits.map((l) => `${l}   [${name}]`));
+    }
+    console.log(`\n✓ --self-test: check 7 stable heads — ${controls7.length} controls (1.0.0; 1.1.0 after 1.0.0) stayed green; ${plants7.length} plants produced the expected drift:`);
+    for (const line of stableLines) console.log(line);
   }
 }
 
