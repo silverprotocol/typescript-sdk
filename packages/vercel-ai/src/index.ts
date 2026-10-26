@@ -791,7 +791,7 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
           // loop on it, and an older ai passes it through. SPEC §8.0 item 17: a native
           // interruption closes with turn.abort, never a success turn.done.
           // turn.abort carries no usage; each step's usage already rode its
-          // finish-step's message.end, which item 17 allows in its place.
+          // finish-step's message.end, the per-message usage carrier (§4).
           a.emit({ type: "turn.abort", turnId: t, reason: "interrupted" });
         } else if (str(part["finishReason"]) === "error") {
           // The stashed arm-A fields (message + optional code/retriable) close
