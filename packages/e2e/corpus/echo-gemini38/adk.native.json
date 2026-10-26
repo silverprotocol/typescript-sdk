@@ -1,8 +1,8 @@
 [
   {
-    "invocationId": "e-26e55298-f001-4c24-b284-eecd1dbe0b46",
+    "invocationId": "e-39bd0729-3995-43a9-8122-2d3915a47aa0",
     "author": "spike",
-    "id": "CJz1xt0k",
+    "id": "xSeIJsFN",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -10,7 +10,7 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1792039456313,
+    "timestamp": 1792983400426,
     "content": {
       "parts": [
         {
@@ -19,9 +19,9 @@
             "args": {
               "message": "conformance-probe-gemini38"
             },
-            "id": "call_213439"
+            "id": "call_2077684"
           },
-          "thoughtSignature": "EuMCCuACAWkUfRNeCoN+69R77d1pY2/S3ScMCZhl4u+GNHKT72VabpAJtwjTLiiEwx+7kV20qHDKvU260inA/VXQ0J/K+EydiS+p6kgW4uLPRMTDZ21LVsHUuKdI8EiuQbBdbUihDcLPdxJnr/+tZge0ARLAbikJTiQD2HvXlLDtqc8GXDt0g9QgEcZYb3mNhEVOj9UgsssIodBF526iIMCVvupQh89/CIFGrRe1WXxCECw366rfX0suWLCiqn8jvHazy1L026fktkZe9y/MUbXa5kTRM3fYHuxtZzDDm6cNHWookcBjDk0OfY/ZBxwh0WtAolTONniuQBlWLcbGx1ESKpBi1Cpz7b3TNrwZ6mDUG3nHXCHxFYcVIjPVn7HN4vqFBn3bAMigAeBw1zzDd0WUwXCq5p2iXJ+qKZLyN4zHRSyZ3QQkFnsnjHoEYWyfnUXQ7JgkFGvW3Wk4c8DcKLIX5kOPbg=="
+          "thoughtSignature": "EqQCCqECAWkUfROuTv5e/FvcPRsJLp3JAJmgmMwC/s+zT1y73hPhDILY/M/f5dtxCTFZqnPodfg+nTmJhzZLtf47HscjMQfRxoy0HMo3fPd9Rm9dzoPZS+xs9qhJpXFa1s4GMIVePZ05PHq/VWPwdSFOB3WuG7N9h9S5LG1JuvlxlbKDHWxfC9Gw0MX8tnhyBdwWQVBGNtFHHjM5gmvUqUeGvX0Vswm44+rOIOiSvmA27g11t+f6jl9k3WkZJdP31RwjDfg4W0szazwudQhG93RTLQ8usknvRCX3eCX+akhp50GHb0K0N9fEWpp1m5biFifjkElRAXcqa4emQmjxvl9UXSkA2EBJL4sIEX6Q6pRkWO62AH+NNrvLajZBW3t7wxIsIlKPpw=="
         }
       ],
       "role": "model"
@@ -29,27 +29,27 @@
     "usageMetadata": {
       "promptTokenCount": 109,
       "candidatesTokenCount": 22,
-      "totalTokenCount": 196,
+      "totalTokenCount": 187,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
           "tokenCount": 109
         }
       ],
-      "thoughtsTokenCount": 65,
+      "thoughtsTokenCount": 56,
       "serviceTier": "standard"
     },
     "finishReason": "STOP"
   },
   {
-    "invocationId": "e-26e55298-f001-4c24-b284-eecd1dbe0b46",
+    "invocationId": "e-39bd0729-3995-43a9-8122-2d3915a47aa0",
     "author": "spike",
     "content": {
       "role": "user",
       "parts": [
         {
           "functionResponse": {
-            "id": "call_213439",
+            "id": "call_2077684",
             "name": "echo",
             "response": {
               "content": [
@@ -69,14 +69,14 @@
       "requestedAuthConfigs": {},
       "requestedToolConfirmations": {}
     },
-    "id": "DXNGq7lt",
+    "id": "fMs11A3Q",
     "longRunningToolIds": [],
-    "timestamp": 1792039459439
+    "timestamp": 1792983403216
   },
   {
-    "invocationId": "e-26e55298-f001-4c24-b284-eecd1dbe0b46",
+    "invocationId": "e-39bd0729-3995-43a9-8122-2d3915a47aa0",
     "author": "spike",
-    "id": "pttueMOX",
+    "id": "eeT5Nt1p",
     "actions": {
       "stateDelta": {},
       "artifactDelta": {},
@@ -84,26 +84,27 @@
       "requestedToolConfirmations": {}
     },
     "longRunningToolIds": [],
-    "timestamp": 1792039459443,
+    "timestamp": 1792983403221,
     "content": {
       "parts": [
         {
           "text": "conformance-probe-gemini38",
-          "thoughtSignature": "EmkKZwFpFH0Tg3LNsl6ck+79olZZo4rfMAKho+IW4LSRepEG9PrKlqL0wiFMadFrh8vxIV3pDhn2F/eZNIw/gV7YtAntuM4sKQ5ZjEroA7fv1NOof38sH3kqFQ+/utap2n/uyd1YS83aeqQ="
+          "thoughtSignature": "EqMBCqABAWkUfRMnezVjT2gFepcfzX1k9dobFxfrnyAnUOFcSYn7KVPpaDRJp6cuMnjC/sHT6Vu4vRlJo8eDckIlZvyVs1QMUCuNJLs3N49z5ILfVUF7JNvHxjiVQ3EzYIM6PpIri+iVfpwv/01B+lmjHV+jvd6dBc7Kq5tEYsdAG2gnukGtpyq/UP5Tvutmg1b9Tyizj77L9Nw+5ksKZB1m2SByjA=="
         }
       ],
       "role": "model"
     },
     "usageMetadata": {
-      "promptTokenCount": 225,
+      "promptTokenCount": 216,
       "candidatesTokenCount": 9,
-      "totalTokenCount": 234,
+      "totalTokenCount": 238,
       "promptTokensDetails": [
         {
           "modality": "TEXT",
-          "tokenCount": 225
+          "tokenCount": 216
         }
       ],
+      "thoughtsTokenCount": 13,
       "serviceTier": "standard"
     },
     "finishReason": "STOP"
