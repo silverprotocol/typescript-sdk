@@ -42,7 +42,10 @@ export const state: { tag: boolean; calls: CallLog[]; stripped: (number | null)[
 const req = createRequire(import.meta.url);
 const esmRoot = dirname(req.resolve("@google/adk").replace(/dist\/cjs\/index\.(c?js)$/, "dist/esm/index.js"));
 const streaming: Any = await import(pathToFileURL(join(esmRoot, "utils", "streaming_utils.js")).href);
-const SRA: Any = streaming.StreamingResponseAggregator.prototype;
+// @google/adk 2.3.0 renamed the class GeminiStreamingResponseAggregator (same processResponse/close shape).
+const SRAClass: Any = streaming.GeminiStreamingResponseAggregator ?? streaming.StreamingResponseAggregator;
+if (typeof SRAClass !== "function") throw new Error(`adk-oracle: no SSE aggregator class in ${Object.keys(streaming).join(", ")}`);
+const SRA: Any = SRAClass.prototype;
 const TAG = "__oracle_call";
 const CREATED = "__oracle_cm_created";
 const tagOut = (r: Any, k: number | undefined): Any => {
