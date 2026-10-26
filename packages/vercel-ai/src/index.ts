@@ -863,8 +863,9 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         const usage = mapUsage(part["totalUsage"]);
         if (str(part["finishReason"]) === "interrupted") {
           // ai>=7.0.153: the provider stream ended without a completion signal
-          // (@ai-sdk/openai 4.0.102 starts every Responses stream at unified
-          // "interrupted" until response.completed / response.incomplete lands),
+          // (@ai-sdk/openai 4.0.102 starts every stream, Responses, Chat
+          // Completions and Completions, at unified "interrupted" until its
+          // completion signal lands),
           // and ai stops the step loop on it. SPEC §8.0 item 17: a native
           // interruption closes with turn.abort, never a success turn.done.
           // turn.abort carries no usage; each step's usage already rode its
