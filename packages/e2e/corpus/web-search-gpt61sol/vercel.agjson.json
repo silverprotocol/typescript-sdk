@@ -24,7 +24,7 @@
     "type": "tool.start",
     "seq": 3,
     "turnId": "turn_vercel_1",
-    "toolCallId": "ws_07bbd48ead0dd987006addf21b318487d0b11cf847dddeacea",
+    "toolCallId": "ws_0cf9af1d10cf5f49006adebf4d585c87d0a350ca22ff99ad10",
     "name": "web_search",
     "messageId": "msg_turn_vercel_1_s1",
     "dynamic": false,
@@ -33,14 +33,14 @@
   {
     "type": "tool.args.assembled",
     "seq": 4,
-    "toolCallId": "ws_07bbd48ead0dd987006addf21b318487d0b11cf847dddeacea",
+    "toolCallId": "ws_0cf9af1d10cf5f49006adebf4d585c87d0a350ca22ff99ad10",
     "input": {}
   },
   {
     "type": "tool.done",
     "seq": 5,
     "turnId": "turn_vercel_1",
-    "toolCallId": "ws_07bbd48ead0dd987006addf21b318487d0b11cf847dddeacea",
+    "toolCallId": "ws_0cf9af1d10cf5f49006adebf4d585c87d0a350ca22ff99ad10",
     "outcome": "ok",
     "structuredContent": {
       "action": {
@@ -48,41 +48,21 @@
         "query": "site.nodejs.org release schedule Active LTS October 2026 Node.js",
         "queries": [
           "site.nodejs.org release schedule Active LTS October 2026 Node.js",
-          "site:github.com/nodejs/Release schedule 2026-10-20 2026-10-27"
+          "site:github.com/nodejs/Release schedule 2026-10-27 24 26"
         ]
       },
       "sources": [
-        {
-          "type": "url",
-          "url": "https://github.com/nodejs/Release/blob/main/README.md?plain=1"
-        },
         {
           "type": "url",
           "url": "https://github.com/nodejs/Release"
         },
         {
           "type": "url",
-          "url": "https://github.com/nodejs/release"
+          "url": "https://github.com/nodejs/Release/blob/main/README.md?plain=1"
         },
         {
           "type": "url",
-          "url": "https://github.com/nodejs/node/releases"
-        },
-        {
-          "type": "url",
-          "url": "https://github.com/nodejs/node/releases?after=v8.4.0"
-        },
-        {
-          "type": "url",
-          "url": "https://github.com/nodejs/node/releases?after=v6.12.3"
-        },
-        {
-          "type": "url",
-          "url": "https://github.com/nodejs/node/releases?after=v12.1.0"
-        },
-        {
-          "type": "url",
-          "url": "https://github.com/nodejs/Release/blob/main/schedule.json"
+          "url": "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule?trk=article-ssr-frontend-pulse_little-text-block"
         },
         {
           "type": "url",
@@ -90,15 +70,35 @@
         },
         {
           "type": "url",
+          "url": "https://github.com/nodejs/node/releases"
+        },
+        {
+          "type": "url",
+          "url": "https://github.com/nodejs/Release/blob/main/schedule.json"
+        },
+        {
+          "type": "url",
+          "url": "https://github.com/nodejs/node/releases?after=v8.4.0"
+        },
+        {
+          "type": "url",
+          "url": "https://nodejs.org/en/about/previous-releases?jmp=dzone-ref"
+        },
+        {
+          "type": "url",
+          "url": "https://github.com/nodejs/node/releases?after=v12.1.0"
+        },
+        {
+          "type": "url",
+          "url": "https://github.com/nodejs/node/releases?after=v6.12.3"
+        },
+        {
+          "type": "url",
           "url": "https://github.com/nodejs/Release/issues/1152"
         },
         {
           "type": "url",
-          "url": "https://errcodex.com/compat/nodejs/node-release-schedule/"
-        },
-        {
-          "type": "url",
-          "url": "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------"
+          "url": "https://github.com/nodejs/nodejs.org/blob/main/apps/site/pages/en/blog/events/nodejs-interactive-2026.md"
         },
         {
           "type": "url",
@@ -114,10 +114,6 @@
         },
         {
           "type": "url",
-          "url": "https://www.igalia.com/downloads/slides/JoyeeCheung-BridgingCommonJSandESMinNodejs.pdf"
-        },
-        {
-          "type": "url",
           "url": "https://www.reddit.com/r/Hostinger/comments/1xcg87w/were_updating_nodejs_on_our_hosting_platform/"
         },
         {
@@ -130,15 +126,19 @@
         },
         {
           "type": "url",
+          "url": "https://lib.bimm.uz/items/download/10037"
+        },
+        {
+          "type": "url",
           "url": "https://ddrohan.github.io/wit-wad/topic02-node/talk-1-node-1/node.1.pdf"
         },
         {
           "type": "url",
-          "url": "https://en.wikipedia.org/wiki/Electron_%28software_framework%29"
+          "url": "https://ru.wikipedia.org/wiki/Node.js"
         },
         {
           "type": "url",
-          "url": "https://ru.wikipedia.org/wiki/Node.js"
+          "url": "https://en.wikipedia.org/wiki/Electron_%28software_framework%29"
         },
         {
           "type": "url",
@@ -150,15 +150,15 @@
         },
         {
           "type": "url",
-          "url": "https://www.reddit.com/r/homelab/comments/1xdhwok/nodejs_critical_vulnerabilities/"
-        },
-        {
-          "type": "url",
           "url": "https://burjcdigital.urjc.es/bitstreams/36e78030-cdaa-4d2e-80f8-6ffa7c65fc26/download"
         },
         {
           "type": "url",
           "url": "https://webweb.ams3.cdn.digitaloceanspaces.com/data/simmcdev.webweb.ai.in/MCAdigitalbook/ADVANCE-INTERNET-Technologies-20240629T071802Z-001/Learning%20Node%2C%202nd%20Edition%20%28%20PDFDrive%20%29.pdf"
+        },
+        {
+          "type": "url",
+          "url": "https://www.reddit.com/r/homelab/comments/1xdhwok/nodejs_critical_vulnerabilities/"
         },
         {
           "type": "url",
@@ -178,15 +178,11 @@
         },
         {
           "type": "url",
-          "url": "https://www.reddit.com/r/node/comments/1daa51m"
-        },
-        {
-          "type": "url",
           "url": "https://www.reddit.com/r/Tidra/comments/1vdky13/weekly_maintenance_radar_week_ending_july_31_2026/"
         },
         {
           "type": "url",
-          "url": "https://www.reddit.com/r/Tidra/comments/1v8ajsa/nodejs_ships_highseverity_patches_across_all/"
+          "url": "https://www.reddit.com/r/node/comments/1daa51m"
         },
         {
           "type": "url",
@@ -195,13 +191,17 @@
         {
           "type": "url",
           "url": "https://www.reddit.com/r/node/comments/1dl6fm2/how_does_node_lts_work/"
+        },
+        {
+          "type": "url",
+          "url": "https://www.reddit.com/r/debian/comments/ocmwu3"
         }
       ]
     },
     "content": [
       {
         "type": "text",
-        "text": "{\"action\":{\"type\":\"search\",\"query\":\"site.nodejs.org release schedule Active LTS October 2026 Node.js\",\"queries\":[\"site.nodejs.org release schedule Active LTS October 2026 Node.js\",\"site:github.com/nodejs/Release schedule 2026-10-20 2026-10-27\"]},\"sources\":[{\"type\":\"url\",\"url\":\"https://github.com/nodejs/Release/blob/main/README.md?plain=1\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/Release\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/release\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/releases\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/releases?after=v8.4.0\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/releases?after=v6.12.3\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/releases?after=v12.1.0\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/Release/blob/main/schedule.json\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/blob/main/CHANGELOG.md\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/Release/issues/1152\"},{\"type\":\"url\",\"url\":\"https://errcodex.com/compat/nodejs/node-release-schedule/\"},{\"type\":\"url\",\"url\":\"https://nodejs.org/en/about/previous-releases?source=post_page---------------------------\"},{\"type\":\"url\",\"url\":\"https://es.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://assets.ctfassets.net/hspc7zpa5cvq/5EKMf9hFPpoKbk96F1xriv/ac10c4d25fd7caef556283da088b1db6/operationalizing-node-js.pdf\"},{\"type\":\"url\",\"url\":\"https://en.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://www.igalia.com/downloads/slides/JoyeeCheung-BridgingCommonJSandESMinNodejs.pdf\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/Hostinger/comments/1xcg87w/were_updating_nodejs_on_our_hosting_platform/\"},{\"type\":\"url\",\"url\":\"https://de.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://it.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://ddrohan.github.io/wit-wad/topic02-node/talk-1-node-1/node.1.pdf\"},{\"type\":\"url\",\"url\":\"https://en.wikipedia.org/wiki/Electron_%28software_framework%29\"},{\"type\":\"url\",\"url\":\"https://ru.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/Tidra/comments/1v78wc0/weekly_maintenance_radar_week_ending_july_24_2026/\"},{\"type\":\"url\",\"url\":\"https://nodejs.org/static/documents/2018-survey-report.pdf\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/homelab/comments/1xdhwok/nodejs_critical_vulnerabilities/\"},{\"type\":\"url\",\"url\":\"https://burjcdigital.urjc.es/bitstreams/36e78030-cdaa-4d2e-80f8-6ffa7c65fc26/download\"},{\"type\":\"url\",\"url\":\"https://webweb.ams3.cdn.digitaloceanspaces.com/data/simmcdev.webweb.ai.in/MCAdigitalbook/ADVANCE-INTERNET-Technologies-20240629T071802Z-001/Learning%20Node%2C%202nd%20Edition%20%28%20PDFDrive%20%29.pdf\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/SillyTavernAI/comments/1xcw4nr/nodejs_team_announced_a_few_vulnerabilities_fixes/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/javascript/comments/1o7w54l/nodejs_v2500_current/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/freebsd/comments/1xd4bl1/ok_nodejs_folks_youre_up_cve2026111497/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/devopsish/comments/1xblh6p/nodejs_wednesday_october_21_2026_security_releases/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/node/comments/1daa51m\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/Tidra/comments/1vdky13/weekly_maintenance_radar_week_ending_july_31_2026/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/Tidra/comments/1v8ajsa/nodejs_ships_highseverity_patches_across_all/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/node/comments/1ufv146/node_alpha/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/node/comments/1dl6fm2/how_does_node_lts_work/\"}]}"
+        "text": "{\"action\":{\"type\":\"search\",\"query\":\"site.nodejs.org release schedule Active LTS October 2026 Node.js\",\"queries\":[\"site.nodejs.org release schedule Active LTS October 2026 Node.js\",\"site:github.com/nodejs/Release schedule 2026-10-27 24 26\"]},\"sources\":[{\"type\":\"url\",\"url\":\"https://github.com/nodejs/Release\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/Release/blob/main/README.md?plain=1\"},{\"type\":\"url\",\"url\":\"https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule?trk=article-ssr-frontend-pulse_little-text-block\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/blob/main/CHANGELOG.md\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/releases\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/Release/blob/main/schedule.json\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/releases?after=v8.4.0\"},{\"type\":\"url\",\"url\":\"https://nodejs.org/en/about/previous-releases?jmp=dzone-ref\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/releases?after=v12.1.0\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/node/releases?after=v6.12.3\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/Release/issues/1152\"},{\"type\":\"url\",\"url\":\"https://github.com/nodejs/nodejs.org/blob/main/apps/site/pages/en/blog/events/nodejs-interactive-2026.md\"},{\"type\":\"url\",\"url\":\"https://es.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://assets.ctfassets.net/hspc7zpa5cvq/5EKMf9hFPpoKbk96F1xriv/ac10c4d25fd7caef556283da088b1db6/operationalizing-node-js.pdf\"},{\"type\":\"url\",\"url\":\"https://en.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/Hostinger/comments/1xcg87w/were_updating_nodejs_on_our_hosting_platform/\"},{\"type\":\"url\",\"url\":\"https://de.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://it.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://lib.bimm.uz/items/download/10037\"},{\"type\":\"url\",\"url\":\"https://ddrohan.github.io/wit-wad/topic02-node/talk-1-node-1/node.1.pdf\"},{\"type\":\"url\",\"url\":\"https://ru.wikipedia.org/wiki/Node.js\"},{\"type\":\"url\",\"url\":\"https://en.wikipedia.org/wiki/Electron_%28software_framework%29\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/Tidra/comments/1v78wc0/weekly_maintenance_radar_week_ending_july_24_2026/\"},{\"type\":\"url\",\"url\":\"https://nodejs.org/static/documents/2018-survey-report.pdf\"},{\"type\":\"url\",\"url\":\"https://burjcdigital.urjc.es/bitstreams/36e78030-cdaa-4d2e-80f8-6ffa7c65fc26/download\"},{\"type\":\"url\",\"url\":\"https://webweb.ams3.cdn.digitaloceanspaces.com/data/simmcdev.webweb.ai.in/MCAdigitalbook/ADVANCE-INTERNET-Technologies-20240629T071802Z-001/Learning%20Node%2C%202nd%20Edition%20%28%20PDFDrive%20%29.pdf\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/homelab/comments/1xdhwok/nodejs_critical_vulnerabilities/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/SillyTavernAI/comments/1xcw4nr/nodejs_team_announced_a_few_vulnerabilities_fixes/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/javascript/comments/1o7w54l/nodejs_v2500_current/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/freebsd/comments/1xd4bl1/ok_nodejs_folks_youre_up_cve2026111497/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/devopsish/comments/1xblh6p/nodejs_wednesday_october_21_2026_security_releases/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/Tidra/comments/1vdky13/weekly_maintenance_radar_week_ending_july_31_2026/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/node/comments/1daa51m\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/node/comments/1ufv146/node_alpha/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/node/comments/1dl6fm2/how_does_node_lts_work/\"},{\"type\":\"url\",\"url\":\"https://www.reddit.com/r/debian/comments/ocmwu3\"}]}"
       }
     ]
   },
@@ -212,8 +212,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "HtvIpYdeuTff5XcX",
-      "url": "https://github.com/nodejs/Release/blob/main/README.md?plain=1"
+      "id": "23VUVkf0q3cOgZc2",
+      "url": "https://github.com/nodejs/Release"
     }
   },
   {
@@ -223,8 +223,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "6T9mVhGPVb5Oyt0A",
-      "url": "https://github.com/nodejs/Release"
+      "id": "AWzsEbkMRwKQW61s",
+      "url": "https://github.com/nodejs/Release/blob/main/README.md?plain=1"
     }
   },
   {
@@ -234,8 +234,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "OLjEq1O9epkiaa7j",
-      "url": "https://github.com/nodejs/release"
+      "id": "rQQAdw3ZexRfQfEe",
+      "url": "https://nodejs.org/en/blog/announcements/evolving-the-nodejs-release-schedule?trk=article-ssr-frontend-pulse_little-text-block"
     }
   },
   {
@@ -245,8 +245,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "YkPYMHEh1ErKcEJg",
-      "url": "https://github.com/nodejs/node/releases"
+      "id": "Oi0UreZolE3nInFu",
+      "url": "https://github.com/nodejs/node/blob/main/CHANGELOG.md"
     }
   },
   {
@@ -256,8 +256,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "CiBR0LvFNO1CiyQd",
-      "url": "https://github.com/nodejs/node/releases?after=v8.4.0"
+      "id": "0JLzYGg3E5ADqyCF",
+      "url": "https://github.com/nodejs/node/releases"
     }
   },
   {
@@ -267,8 +267,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "obq5cmTkWE8Yjajm",
-      "url": "https://github.com/nodejs/node/releases?after=v6.12.3"
+      "id": "5l6PRj9gwdVmZZhf",
+      "url": "https://github.com/nodejs/Release/blob/main/schedule.json"
     }
   },
   {
@@ -278,8 +278,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "kqWgeyKDnnxN3hDM",
-      "url": "https://github.com/nodejs/node/releases?after=v12.1.0"
+      "id": "9VsVHurIMxKXBOEo",
+      "url": "https://github.com/nodejs/node/releases?after=v8.4.0"
     }
   },
   {
@@ -289,8 +289,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "OWFXLMaCxxxoBViv",
-      "url": "https://github.com/nodejs/Release/blob/main/schedule.json"
+      "id": "TlhDPSngiIRKLvyi",
+      "url": "https://nodejs.org/en/about/previous-releases?jmp=dzone-ref"
     }
   },
   {
@@ -300,8 +300,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "MDixWtnXCBLzqcxk",
-      "url": "https://github.com/nodejs/node/blob/main/CHANGELOG.md"
+      "id": "TjzfDYXTzjthlNAo",
+      "url": "https://github.com/nodejs/node/releases?after=v12.1.0"
     }
   },
   {
@@ -311,8 +311,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "BfIdKel4fhSbdtjN",
-      "url": "https://github.com/nodejs/Release/issues/1152"
+      "id": "MduXfudXXzw6w8RK",
+      "url": "https://github.com/nodejs/node/releases?after=v6.12.3"
     }
   },
   {
@@ -322,8 +322,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "D6WwehVG8NKWnfiv",
-      "url": "https://errcodex.com/compat/nodejs/node-release-schedule/"
+      "id": "jTJ7gZnXLv09M7ya",
+      "url": "https://github.com/nodejs/Release/issues/1152"
     }
   },
   {
@@ -333,8 +333,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "wcv00tFcs4FDpWFa",
-      "url": "https://nodejs.org/en/about/previous-releases?source=post_page---------------------------"
+      "id": "bLLIFUe1aEbpA8PM",
+      "url": "https://github.com/nodejs/nodejs.org/blob/main/apps/site/pages/en/blog/events/nodejs-interactive-2026.md"
     }
   },
   {
@@ -344,7 +344,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "y4dGBQRX208phZRD",
+      "id": "mB8cUAnxvRyfh9KF",
       "url": "https://es.wikipedia.org/wiki/Node.js"
     }
   },
@@ -355,7 +355,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "m54u4vGExcBLEEkk",
+      "id": "CHrgq7V9T7gZg23w",
       "url": "https://assets.ctfassets.net/hspc7zpa5cvq/5EKMf9hFPpoKbk96F1xriv/ac10c4d25fd7caef556283da088b1db6/operationalizing-node-js.pdf"
     }
   },
@@ -366,7 +366,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "2PLLPrIVtjHqL7xZ",
+      "id": "kEUMIwRUl69KbPiB",
       "url": "https://en.wikipedia.org/wiki/Node.js"
     }
   },
@@ -377,8 +377,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "pG5lm4tscKFucWNj",
-      "url": "https://www.igalia.com/downloads/slides/JoyeeCheung-BridgingCommonJSandESMinNodejs.pdf"
+      "id": "b1frXRqUkLixH4q3",
+      "url": "https://www.reddit.com/r/Hostinger/comments/1xcg87w/were_updating_nodejs_on_our_hosting_platform/"
     }
   },
   {
@@ -388,8 +388,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "jp8aOBaQt2Jlsg0y",
-      "url": "https://www.reddit.com/r/Hostinger/comments/1xcg87w/were_updating_nodejs_on_our_hosting_platform/"
+      "id": "c9xBKwhNjSnkfIO2",
+      "url": "https://de.wikipedia.org/wiki/Node.js"
     }
   },
   {
@@ -399,8 +399,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "iewlNm6jfW0WhesJ",
-      "url": "https://de.wikipedia.org/wiki/Node.js"
+      "id": "XMBFMM0C31FeCnav",
+      "url": "https://it.wikipedia.org/wiki/Node.js"
     }
   },
   {
@@ -410,8 +410,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "QOU1eCVOyzfIpTWv",
-      "url": "https://it.wikipedia.org/wiki/Node.js"
+      "id": "nhAVCdesm15Cuvfp",
+      "url": "https://lib.bimm.uz/items/download/10037"
     }
   },
   {
@@ -421,7 +421,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "zjyo4C7pqzcnhnKZ",
+      "id": "jMTQHUtpH40gqbdz",
       "url": "https://ddrohan.github.io/wit-wad/topic02-node/talk-1-node-1/node.1.pdf"
     }
   },
@@ -432,8 +432,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "LknsLNRcRIqmZ1nj",
-      "url": "https://en.wikipedia.org/wiki/Electron_%28software_framework%29"
+      "id": "dtajiAHI2nrtVvgg",
+      "url": "https://ru.wikipedia.org/wiki/Node.js"
     }
   },
   {
@@ -443,8 +443,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "u0MMhu0oZL0UxNSH",
-      "url": "https://ru.wikipedia.org/wiki/Node.js"
+      "id": "1M6U6ztMwcJbsOrC",
+      "url": "https://en.wikipedia.org/wiki/Electron_%28software_framework%29"
     }
   },
   {
@@ -454,7 +454,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "CkLvrTYt3HvcGHgE",
+      "id": "8KAbB4wIoe4Hj3mj",
       "url": "https://www.reddit.com/r/Tidra/comments/1v78wc0/weekly_maintenance_radar_week_ending_july_24_2026/"
     }
   },
@@ -465,7 +465,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "dvZ0WwzAxUBIhAD8",
+      "id": "EcraOUWYtzG1t9h4",
       "url": "https://nodejs.org/static/documents/2018-survey-report.pdf"
     }
   },
@@ -476,8 +476,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "cLpdutlyZYDHpo54",
-      "url": "https://www.reddit.com/r/homelab/comments/1xdhwok/nodejs_critical_vulnerabilities/"
+      "id": "bAnx3Ho15TJ9QEXW",
+      "url": "https://burjcdigital.urjc.es/bitstreams/36e78030-cdaa-4d2e-80f8-6ffa7c65fc26/download"
     }
   },
   {
@@ -487,8 +487,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "bPjUqngrbkSvn4ok",
-      "url": "https://burjcdigital.urjc.es/bitstreams/36e78030-cdaa-4d2e-80f8-6ffa7c65fc26/download"
+      "id": "ahc2Gc4JTh1MJEd3",
+      "url": "https://webweb.ams3.cdn.digitaloceanspaces.com/data/simmcdev.webweb.ai.in/MCAdigitalbook/ADVANCE-INTERNET-Technologies-20240629T071802Z-001/Learning%20Node%2C%202nd%20Edition%20%28%20PDFDrive%20%29.pdf"
     }
   },
   {
@@ -498,8 +498,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "GTj9VptCKoB6naJj",
-      "url": "https://webweb.ams3.cdn.digitaloceanspaces.com/data/simmcdev.webweb.ai.in/MCAdigitalbook/ADVANCE-INTERNET-Technologies-20240629T071802Z-001/Learning%20Node%2C%202nd%20Edition%20%28%20PDFDrive%20%29.pdf"
+      "id": "AAwbOOt6pnTnuWxN",
+      "url": "https://www.reddit.com/r/homelab/comments/1xdhwok/nodejs_critical_vulnerabilities/"
     }
   },
   {
@@ -509,7 +509,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "dOfogZI1DBsZxu3g",
+      "id": "1C6OK35TVcFz5Cci",
       "url": "https://www.reddit.com/r/SillyTavernAI/comments/1xcw4nr/nodejs_team_announced_a_few_vulnerabilities_fixes/"
     }
   },
@@ -520,7 +520,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "622BhwYYD9Xmxyda",
+      "id": "HNUNKt9cyQuUJ7Ac",
       "url": "https://www.reddit.com/r/javascript/comments/1o7w54l/nodejs_v2500_current/"
     }
   },
@@ -531,7 +531,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "MaHAxoVnOtWz0pAr",
+      "id": "5bINgh5Q1sTKHmml",
       "url": "https://www.reddit.com/r/freebsd/comments/1xd4bl1/ok_nodejs_folks_youre_up_cve2026111497/"
     }
   },
@@ -542,7 +542,7 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "tlL7r4tE3inN5JVM",
+      "id": "7LfTLgIFXFZn3BKw",
       "url": "https://www.reddit.com/r/devopsish/comments/1xblh6p/nodejs_wednesday_october_21_2026_security_releases/"
     }
   },
@@ -553,8 +553,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "3ALvlhN9PDEGlwfm",
-      "url": "https://www.reddit.com/r/node/comments/1daa51m"
+      "id": "MVy3UBIhvl3IpmTh",
+      "url": "https://www.reddit.com/r/Tidra/comments/1vdky13/weekly_maintenance_radar_week_ending_july_31_2026/"
     }
   },
   {
@@ -564,8 +564,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "AkuSp11iR7QIOguu",
-      "url": "https://www.reddit.com/r/Tidra/comments/1vdky13/weekly_maintenance_radar_week_ending_july_31_2026/"
+      "id": "EEwb7YeogSEedM2S",
+      "url": "https://www.reddit.com/r/node/comments/1daa51m"
     }
   },
   {
@@ -575,8 +575,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "YGx0K7HSjtfXgeZt",
-      "url": "https://www.reddit.com/r/Tidra/comments/1v8ajsa/nodejs_ships_highseverity_patches_across_all/"
+      "id": "wRZq0fGYmIdTiPgq",
+      "url": "https://www.reddit.com/r/node/comments/1ufv146/node_alpha/"
     }
   },
   {
@@ -586,8 +586,8 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "d26GcogsCQXSG27v",
-      "url": "https://www.reddit.com/r/node/comments/1ufv146/node_alpha/"
+      "id": "8RslB5TC1m6MGA7e",
+      "url": "https://www.reddit.com/r/node/comments/1dl6fm2/how_does_node_lts_work/"
     }
   },
   {
@@ -597,31 +597,31 @@
     "frame": {
       "type": "source",
       "sourceType": "url",
-      "id": "LxH6ZuwYdE0NEPMs",
-      "url": "https://www.reddit.com/r/node/comments/1dl6fm2/how_does_node_lts_work/"
+      "id": "hFHgeq9FCVatIMv4",
+      "url": "https://www.reddit.com/r/debian/comments/ocmwu3"
     }
   },
   {
     "type": "reasoning.start",
     "seq": 42,
-    "id": "rs_07bbd48ead0dd987006addf21ef35087d0ae631bbf9fa48be2:0",
+    "id": "rs_0cf9af1d10cf5f49006adebf516da087d0bbcda3e9334fbcb4:0",
     "messageId": "msg_turn_vercel_1_s1",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "reasoning.end",
     "seq": 43,
-    "id": "rs_07bbd48ead0dd987006addf21ef35087d0ae631bbf9fa48be2:0",
+    "id": "rs_0cf9af1d10cf5f49006adebf516da087d0bbcda3e9334fbcb4:0",
     "messageId": "msg_turn_vercel_1_s1",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "reasoning.opaque",
     "seq": 44,
-    "id": "rs_07bbd48ead0dd987006addf21ef35087d0ae631bbf9fa48be2:0",
+    "id": "rs_0cf9af1d10cf5f49006adebf516da087d0bbcda3e9334fbcb4:0",
     "messageId": "msg_turn_vercel_1_s1",
     "kind": "encrypted",
-    "value": "gAAAAABq3fIf2whuzgPDLoYxL2_WbhwxB7ukNgNjM4ottMaQCBwW-YXb5d0IsJrcniRGQint26IAVtx6RFKCg6WyhZmEoG0vuvoAW9saKhMszCIRgt2fPmX_b7NowRRX4UzZOBIWeU4023T63D14mMiQKzhZIP8ptDamN7M4cvHxZxsJvnaOo7fNNiRKwO5T_XzrvClFSNQOD_LKzSF4kf6CG7jOiWoVrjFBx5HWqhNCUVrkngubEFvFwISW2fSQGemrkD6vq-TIPmn9sV-MgUgkehccCV90WXi-fJW_8bhx40G5BFkGPyqBh-yLcmW6t67zsQS3Ye-DVQ2puloMBCCfB1h6NROsgvy-KJb2Q0sKNphPHLe8pb0BZkItLntEC37BDe-tjiZLZwzTRf9R7FgUfDbyUnHDGWcQE5dlbx4ZDsHjerXUk07_EPoqz1MwgY6lOMAWsDpx6c7qq-uPvVx-_KinWxJQ1zPQhBhyFGSMlTsbDjflX8s5PHU42jozQtDUrgPhfYAqIqQejnsVKgcrIjI8MXGroyZ3DcxQFzGjRM8dcjHmxMt_VmkAQmlXYMgoTG-aw1ak99oY0WAfcbUIm1GGntyrDuhNG2pCfxJc5jPchusRiJGWHEycUhgwf25Kb8BdWNVvSW6DuBDl7XLFKwv2muIqV40XM6EN69WT2pV447ujJrFBOG9kAMh1psZ8G5YHYQx6TvPmECuJQqNuVbcJjN6QufujqkulIpZlmWnI1DN2KXEDzTmu1u3DWmSB31UxEFEekIApjNqFDF7zklttlFAD4-P_J1tYPVseMyS26IWaTIaHAQwLZm3SK-1_8fqT3xmveHp3t57Qv0EMosrt5HTVBCX7WXs2JGoYWxP97_Jgz_57pNj9w6jw_YRlOBxbdPjhGnJnwE-S0f173xo4Yt9EBp0z1OYFkIas5Pgx9cdJqyY_sSQ29PYwuZnEZu_-GM1qs7YOyGGEp1CDIXXKRdiDnpmqP4w2pnviCrdvD68GPN13JJT15SF32l-4TItPZ3B76U5u5Rz8t5hOUl1DNQJlUvEXBZUL1_5fsSvcM-zDjAxbNPnSt0KxWWSdxBRU3Rw0VPyTJ0l6rj7gJNg_PV1EaY3eTbAZMg2SkIFB7dYKiunYerKME3RmyTbbTewDpMglV4abUYioicP6yJzrr0g14a9A8IB7P0VDDxK31LI6JbEDPdeAb1pxHIE43VXRhIh6HMxy1yTDjk8hxaLA995mpjG983gw_XiftRq1CG81J_HMd4DIanqWZNmJFuB04is3D4__S3qsOPzqNyDrNcCLASX5qiVOVBXr0-CEwF7aNd3ZpcXxYAsPkTIPUGhH3BZflcwlGuaRjqfdweValmUfkySr2zPG8jjVKckclyXIxAc3GBKB3R0Qhy4ghvhsQ2-t6udv06mtLUinQKQKPtLIheHbZs-1wkWlWxEu6kwuTfT4raMb5OBWr-x9i3jQaJXyfBZYoXWQMtVMc2aL5tanjIZr4mcGZmGEAoOTyxATahXUQURAtHt2zvGEkg704KUTkOgNFsFDZQQNlPxTBc2Hso8A4HHVPr1iKc4JPzOCZ-2rR8bGnMe7uCyJgThcopHUaQgeEic733tNoBeo2f14UpeE-BWE5WD6rF3WvME23UE=",
+    "value": "gAAAAABq3r9SfAF33gk_G95dPjCSuG6vygEsKkRhK4JXyIJ3pbFMCZFEZpYyzu9jvPWHOCSk1Eqo_wVKahicAoMOxkvFVUExxDZGEfJZ_cuUVnF6H7UccGYNIFUV2IOI_uMYc2pRQVe2X47qXNhqQPWMq1X7wgQubd_h2ZfhLa8sH_k1m_67UKZyrBb7jIbXG0gaaMh2OZjIiLo0L8PkXV5rXB9IHkFXV_46VutEUNqUHbv732Va4LAY8YKklflDbVwfHfXXJf2TvjrlzZhQjT-0lYt1h8epGFEgLZWf55OlFfL7RWrbBFLt4AViX2OJw9B_C_saKnK5XhB3zvjE3MvGNpVnolykv769o40AMZbYzdfDyUcsE4-1l6B5EhQaHs6HAmcoWRu2ARMmmSMKiWaN-W5b7djKQeGtkulFi2FAI_uL-_cnDIYa05P3fBT9v44CgV0gqUWkv14mCgR-FNLdDa6g41OL4QEcHXPrt4P0WKzT55UoeaQZ2NjhTM_qQAMnMln7Mel1q6TpeleiBCgmvWdzH2sW15G-933pd2D398jHEsIMDyelpYjNYnQNWp-Ff-0SjbxvrX4vh-dQRaby0_gz6eaVJ45IIYa0cGfjzw1oXMbghMSrF74HKIB3huV2X5HoR_74D6i1_wH3jkJ9Zr3fhmysBS90Os33ilpH70VF08VnT0OGex452WHD3KnnxB7eX0O-tJeHN5YUJ7pJuVN82syWNjCfXk3KWeyqa2FHFv0gwWiVN2Zlx0J-z4xFI1uno7CfhXm_3CBy3YxNZ1oKjBW_DR8m7piQp_XwaqHdtpBbrJCkjr0zoEbzCoheuQCd5Pj1ljBsy-Xy2q3ljvXUfuu1U1TxgDFyZVKGuTL9biBNJJKwsbrrDVhfYxYBsfaEuMuBmsc2itIP01y5hGAXqucpx9JujAtgOi5rqAXeYNzepDh3ljgLAyfZ6Y-oW7LwxGJIJNipMWfg7L9mW4YN95a0Tu7yAn1sFWwnE0RzjApPJYZv5wWSgXj7vbtsIixa8hs-Knr0E6HAaB8EYXdeYfvM23ugJOlm8tcUx2EQEDXJ3bUdFjmHdKhY2kIByQ7sfXJiObH7ByQflBdLg6t11qN1EoHRLiruPVUJM2AtEmRQzndLF6ozq4kjUlNJaJBdcrIN-nC2Y4xkbOGnV804LL5ACb8wQWip2W7aIEirLUIELRNA-O6c4olLEX-10VGP7gEwp-MUW-noVhF1pAASAzBktwwNLjZ5ozF1GTngjcwZsuoPY_4lrt6PIMdRJl4TpongjYJfqNCdCHUDwsqrkM-hUltSQxKZeznA7hKjYxNSIcrOx0alVG697AETiaiacColP-hSIh46jMT_fX17dKExhg2EzRdt_-Qm9rRdaGkVomRDEv3WtQ6rAUlEN0QoqNWeX5tFydzioffsicDCZzCogENU7-yrluunpuVjh-eYRMf6SY_6MVlKeAVn1ZP_7tVFg8Nd2PLFLXadsdv87TFlpu2EZ4XF7hY3Sc9NKIIM9_BGBGoD4tNEpj6cScntDT_IQqj4kzLBeFKpDhr549y45HpsQ3IdYfutq0Xa-bHGi3FOFxzX7EN7fhQSGqKcqTopsu7kOBR1aOgiqLKxl-OY-bKkGK3H1Ha8t1YLCPrFLxqzKRWsaQcdwOlYTn0YUxGKZPL-lHBdNq9hyT2Y-PNodDdz223vKfc5491N21dlwdI=",
     "turnId": "turn_vercel_1",
     "provider": "openai"
   },
@@ -629,7 +629,7 @@
     "type": "tool.start",
     "seq": 45,
     "turnId": "turn_vercel_1",
-    "toolCallId": "ws_07bbd48ead0dd987006addf21f318087d09d4d1013a438fada",
+    "toolCallId": "ws_0cf9af1d10cf5f49006adebf52307087d08b9e65e0d55ab77e",
     "name": "web_search",
     "messageId": "msg_turn_vercel_1_s1",
     "dynamic": false,
@@ -638,14 +638,14 @@
   {
     "type": "tool.args.assembled",
     "seq": 46,
-    "toolCallId": "ws_07bbd48ead0dd987006addf21f318087d09d4d1013a438fada",
+    "toolCallId": "ws_0cf9af1d10cf5f49006adebf52307087d08b9e65e0d55ab77e",
     "input": {}
   },
   {
     "type": "tool.done",
     "seq": 47,
     "turnId": "turn_vercel_1",
-    "toolCallId": "ws_07bbd48ead0dd987006addf21f318087d09d4d1013a438fada",
+    "toolCallId": "ws_0cf9af1d10cf5f49006adebf52307087d08b9e65e0d55ab77e",
     "outcome": "ok",
     "structuredContent": {
       "action": {
@@ -663,12 +663,12 @@
   {
     "type": "text.start",
     "seq": 48,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+    "id": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
     "messageId": "msg_turn_vercel_1_s1",
     "turnId": "turn_vercel_1",
     "providerMetadata": {
       "openai": {
-        "itemId": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+        "itemId": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
         "phase": "final_answer"
       }
     }
@@ -676,113 +676,81 @@
   {
     "type": "text.delta",
     "seq": 49,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+    "id": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
     "messageId": "msg_turn_vercel_1_s1",
-    "delta": "The official Node.js release schedule currently",
+    "delta": "The official Node.js Release",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
     "seq": 50,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+    "id": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
     "messageId": "msg_turn_vercel_1_s1",
-    "delta": " labels **Node.js 24.x (Krypton)**",
+    "delta": " Working Group schedule currently lists **Node.js 24.x (“Krypton”)**",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
     "seq": 51,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+    "id": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
     "messageId": "msg_turn_vercel_1_s1",
-    "delta": " as the **",
+    "delta": " as the **Active LTS** line. ",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
     "seq": 52,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+    "id": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
     "messageId": "msg_turn_vercel_1_s1",
-    "delta": "Active LTS** line. ",
+    "delta": "([github.com](https://github.com/nodejs/Release)) It lists Node.js 26.x as “",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
     "seq": 53,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+    "id": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
     "messageId": "msg_turn_vercel_1_s1",
-    "delta": "([github.com](https://github.com/nodejs/Release)) However,",
+    "delta": "Current,” with",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
     "seq": 54,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+    "id": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
     "messageId": "msg_turn_vercel_1_s1",
-    "delta": " its dates conflict with",
+    "delta": " its Active LTS start scheduled for October 28, 2026.",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.delta",
     "seq": 55,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
-    "messageId": "msg_turn_vercel_1_s1",
-    "delta": " that label as of October 25, 2026: it lists",
-    "turnId": "turn_vercel_1"
-  },
-  {
-    "type": "text.delta",
-    "seq": 56,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
-    "messageId": "msg_turn_vercel_1_s1",
-    "delta": " October 20",
-    "turnId": "turn_vercel_1"
-  },
-  {
-    "type": "text.delta",
-    "seq": 57,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
-    "messageId": "msg_turn_vercel_1_s1",
-    "delta": " for v24’s",
-    "turnId": "turn_vercel_1"
-  },
-  {
-    "type": "text.delta",
-    "seq": 58,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
-    "messageId": "msg_turn_vercel_1_s1",
-    "delta": " maintenance transition and October 28 for v26’s Active LTS start.",
-    "turnId": "turn_vercel_1"
-  },
-  {
-    "type": "text.delta",
-    "seq": 59,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+    "id": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
     "messageId": "msg_turn_vercel_1_s1",
     "delta": " ([github.com](https://github.com/nodejs/Release))",
     "turnId": "turn_vercel_1"
   },
   {
     "type": "text.end",
-    "seq": 60,
-    "id": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+    "seq": 56,
+    "id": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
     "messageId": "msg_turn_vercel_1_s1",
     "turnId": "turn_vercel_1",
     "providerMetadata": {
       "openai": {
-        "itemId": "msg_07bbd48ead0dd987006addf221206c87d0af2ae0ed8c3b722c",
+        "itemId": "msg_0cf9af1d10cf5f49006adebf5367f887d0b77a031973c53439",
         "phase": "final_answer",
         "annotations": [
           {
             "type": "url_citation",
-            "start_index": 110,
-            "end_index": 159,
+            "start_index": 125,
+            "end_index": 174,
             "url": "https://github.com/nodejs/Release",
             "title": "GitHub - nodejs/Release: Node.js Release Working Group · GitHub"
           },
           {
             "type": "url_citation",
-            "start_index": 324,
-            "end_index": 373,
+            "start_index": 269,
+            "end_index": 318,
             "url": "https://github.com/nodejs/Release",
             "title": "GitHub - nodejs/Release: Node.js Release Working Group · GitHub"
           }
@@ -796,8 +764,8 @@
         "citedText": "([github.com](https://github.com/nodejs/Release))",
         "indexFrame": "response",
         "title": "GitHub - nodejs/Release: Node.js Release Working Group · GitHub",
-        "startIndex": 110,
-        "endIndex": 159
+        "startIndex": 125,
+        "endIndex": 174
       },
       {
         "kind": "url",
@@ -805,8 +773,8 @@
         "citedText": "([github.com](https://github.com/nodejs/Release))",
         "indexFrame": "response",
         "title": "GitHub - nodejs/Release: Node.js Release Working Group · GitHub",
-        "startIndex": 324,
-        "endIndex": 373
+        "startIndex": 269,
+        "endIndex": 318
       }
     ]
   },
@@ -814,46 +782,46 @@
     "type": "message.metadata",
     "messageId": "msg_turn_vercel_1_s1",
     "metadata": {
-      "responseId": "resp_07bbd48ead0dd987006addf219c4dc87d0bf8dbf4f2f7c236c",
+      "responseId": "resp_0cf9af1d10cf5f49006adebf4b7fe087d09bfc2ab2628572eb",
       "model": "gpt-6.1-sol"
     },
     "turnId": "turn_vercel_1",
-    "seq": 61
+    "seq": 57
   },
   {
     "type": "message.end",
-    "seq": 62,
+    "seq": 58,
     "id": "msg_turn_vercel_1_s1",
     "usage": {
-      "inputTokens": 16651,
-      "outputTokens": 219,
-      "totalTokens": 16870,
+      "inputTokens": 16800,
+      "outputTokens": 203,
+      "totalTokens": 17003,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 4500,
-      "reasoningTokens": 118
+      "reasoningTokens": 114
     }
   },
   {
     "type": "step.done",
     "id": "step_1",
     "turnId": "turn_vercel_1",
-    "seq": 63
+    "seq": 59
   },
   {
     "type": "turn.done",
-    "seq": 64,
+    "seq": 60,
     "turnId": "turn_vercel_1",
     "outcome": {
       "type": "success"
     },
     "finishReason": "stop",
     "usage": {
-      "inputTokens": 16651,
-      "outputTokens": 219,
-      "totalTokens": 16870,
+      "inputTokens": 16800,
+      "outputTokens": 203,
+      "totalTokens": 17003,
       "cacheReadTokens": 0,
       "cacheWriteTokens": 4500,
-      "reasoningTokens": 118
+      "reasoningTokens": 114
     }
   }
 ]

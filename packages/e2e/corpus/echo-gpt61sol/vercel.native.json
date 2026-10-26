@@ -9,7 +9,7 @@
   },
   {
     "type": "tool-input-start",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "toolName": "echo",
     "dynamic": true,
     "toolMetadata": {
@@ -19,78 +19,78 @@
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "{\""
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "message"
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "\":\""
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "con"
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "formance"
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "-pro"
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "be"
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "-g"
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "pt"
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "61"
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "sol"
   },
   {
     "type": "tool-input-delta",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "delta": "\"}"
   },
   {
     "type": "tool-input-end",
-    "id": "call_rDFpSy23RHXqU3iC7zlfkRmR"
+    "id": "call_wSUr5HDyTSXcXLEsoxLB8XvU"
   },
   {
     "type": "tool-call",
-    "toolCallId": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "toolCallId": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "toolName": "echo",
     "input": {
       "message": "conformance-probe-gpt61sol"
     },
     "providerMetadata": {
       "openai": {
-        "itemId": "fc_067f4c13fc82d730006ad6ee52856087d0bb0ffaa44bddc9ed"
+        "itemId": "fc_06d862226ee9d99e006adebf47cd6087d097662633feee3ea2"
       }
     },
     "toolMetadata": {
@@ -101,7 +101,7 @@
   },
   {
     "type": "tool-result",
-    "toolCallId": "call_rDFpSy23RHXqU3iC7zlfkRmR",
+    "toolCallId": "call_wSUr5HDyTSXcXLEsoxLB8XvU",
     "toolName": "echo",
     "input": {
       "message": "conformance-probe-gpt61sol"
@@ -118,7 +118,7 @@
     "dynamic": true,
     "providerMetadata": {
       "openai": {
-        "itemId": "fc_067f4c13fc82d730006ad6ee52856087d0bb0ffaa44bddc9ed"
+        "itemId": "fc_06d862226ee9d99e006adebf47cd6087d097662633feee3ea2"
       }
     },
     "toolMetadata": {
@@ -156,46 +156,46 @@
       }
     },
     "performance": {
-      "stepTimeMs": 3273.726584,
+      "stepTimeMs": 2512.380917,
       "toolExecutionMs": {
-        "call_rDFpSy23RHXqU3iC7zlfkRmR": 3.4573330000002898
+        "call_wSUr5HDyTSXcXLEsoxLB8XvU": 5.564832999999908
       },
-      "responseTimeMs": 3268.5415829999997,
-      "effectiveOutputTokensPerSecond": 7.342724389625733,
-      "outputTokensPerSecond": 62.38219415051223,
-      "inputTokensPerSecond": 36.06332198780876,
-      "effectiveTotalTokensPerSecond": 39.161196744670576,
-      "timeToFirstOutputMs": 2883.8164170000005,
+      "responseTimeMs": 2504.379084,
+      "effectiveOutputTokensPerSecond": 9.583213720850576,
+      "outputTokensPerSecond": 79.92030161042702,
+      "inputTokensPerSecond": 47.18522191407454,
+      "effectiveTotalTokensPerSecond": 51.11047317786974,
+      "timeToFirstOutputMs": 2204.079917,
       "timeBetweenOutputChunksMs": {
-        "min": 0.12308300000040617,
-        "p10": 0.16299999999955617,
-        "median": 3.885874999999942,
-        "avg": 18.116881916666596,
-        "p90": 59.50433299999986,
-        "max": 103.12533299999996
+        "min": 0.22575000000006185,
+        "p10": 0.3087080000000242,
+        "median": 5.022417000000132,
+        "avg": 15.800433999999996,
+        "p90": 53.30724999999984,
+        "max": 62.939332999999806
       }
     },
     "providerMetadata": {
       "openai": {
-        "responseId": "resp_067f4c13fc82d730006ad6ee509c7c87d0a9bd076ff8bc661b",
+        "responseId": "resp_06d862226ee9d99e006adebf46622c87d096462878edb47145",
         "serviceTier": "default",
         "reasoningContext": "all_turns"
       }
     },
     "response": {
-      "id": "resp_067f4c13fc82d730006ad6ee509c7c87d0a9bd076ff8bc661b",
-      "timestamp": "2026-10-20T04:30:08.000Z",
+      "id": "resp_06d862226ee9d99e006adebf46622c87d096462878edb47145",
+      "timestamp": "2026-10-26T02:47:34.000Z",
       "modelId": "gpt-6.1-sol",
       "headers": {
-        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "access-control-expose-headers": "X-Request-ID, Server-Timing-Total, CF-Ray, CF-Ray",
         "alt-svc": "h3=\":443\"; ma=86400",
         "cf-cache-status": "DYNAMIC",
-        "cf-ray": "a4d54912bba3ea14-ICN",
+        "cf-ray": "a5062313bcee2916-ICN",
         "connection": "keep-alive",
         "content-type": "text/event-stream; charset=utf-8",
-        "date": "Tue, 20 Oct 2026 04:30:09 GMT",
+        "date": "Mon, 26 Oct 2026 02:47:34 GMT",
         "openai-organization": "<redacted>",
-        "openai-processing-ms": "845",
+        "openai-processing-ms": "468",
         "openai-project": "<redacted>",
         "openai-version": "2020-10-01",
         "server": "cloudflare",
@@ -209,7 +209,7 @@
         "x-ratelimit-remaining-tokens": "39999460",
         "x-ratelimit-reset-requests": "4ms",
         "x-ratelimit-reset-tokens": "0s",
-        "x-request-id": "req_82d454e00a664a9d9bb5de411b6cc348"
+        "x-request-id": "req_3c0537326f374ff688c01b003daa019d"
       }
     }
   },
@@ -220,60 +220,60 @@
   },
   {
     "type": "text-start",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "providerMetadata": {
       "openai": {
-        "itemId": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+        "itemId": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
         "phase": "final_answer"
       }
     }
   },
   {
     "type": "text-delta",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "text": "con"
   },
   {
     "type": "text-delta",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "text": "formance"
   },
   {
     "type": "text-delta",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "text": "-pro"
   },
   {
     "type": "text-delta",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "text": "be"
   },
   {
     "type": "text-delta",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "text": "-g"
   },
   {
     "type": "text-delta",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "text": "pt"
   },
   {
     "type": "text-delta",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "text": "61"
   },
   {
     "type": "text-delta",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "text": "sol"
   },
   {
     "type": "text-end",
-    "id": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+    "id": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
     "providerMetadata": {
       "openai": {
-        "itemId": "msg_0712f810da74bf71006ad6ee5489ec87d0a8d6286267ff1449",
+        "itemId": "msg_08d2f6cdfdf9555b006adebf4a03ac87d08adae42aa3e6001e",
         "phase": "final_answer"
       }
     }
@@ -308,44 +308,44 @@
       }
     },
     "performance": {
-      "stepTimeMs": 1960.011375,
+      "stepTimeMs": 2230.154958,
       "toolExecutionMs": {},
-      "responseTimeMs": 1958.7915000000003,
-      "effectiveOutputTokensPerSecond": 6.126226298204785,
-      "outputTokensPerSecond": 36.09182662990306,
-      "inputTokensPerSecond": 89.7739893700833,
-      "effectiveTotalTokensPerSecond": 80.66197959302967,
-      "timeToFirstOutputMs": 1626.3062499999996,
+      "responseTimeMs": 2228.135917,
+      "effectiveOutputTokensPerSecond": 5.385667861840764,
+      "outputTokensPerSecond": 38.00993691880366,
+      "inputTokensPerSecond": 76.34270344153954,
+      "effectiveTotalTokensPerSecond": 70.91129351423672,
+      "timeToFirstOutputMs": 1912.4289999999996,
       "timeBetweenOutputChunksMs": {
-        "min": 0.15279199999986304,
-        "p10": 0.15279199999986304,
-        "median": 1.5510830000002898,
-        "avg": 15.645273857142845,
-        "p90": 99.71216699999968,
-        "max": 99.71216699999968
+        "min": 2.661875000000691,
+        "p10": 2.661875000000691,
+        "median": 4.44012500000008,
+        "avg": 10.564101285714319,
+        "p90": 32.590666000000056,
+        "max": 32.590666000000056
       }
     },
     "providerMetadata": {
       "openai": {
-        "responseId": "resp_0712f810da74bf71006ad6ee532d2087d08037c8b681c9adb8",
+        "responseId": "resp_08d2f6cdfdf9555b006adebf485d2887d0a926d0d3b54f3836",
         "serviceTier": "default",
         "reasoningContext": "all_turns"
       }
     },
     "response": {
-      "id": "resp_0712f810da74bf71006ad6ee532d2087d08037c8b681c9adb8",
-      "timestamp": "2026-10-20T04:30:11.000Z",
+      "id": "resp_08d2f6cdfdf9555b006adebf485d2887d0a926d0d3b54f3836",
+      "timestamp": "2026-10-26T02:47:36.000Z",
       "modelId": "gpt-6.1-sol",
       "headers": {
-        "access-control-expose-headers": "X-Request-ID, CF-Ray, CF-Ray",
+        "access-control-expose-headers": "X-Request-ID, Server-Timing-Total, CF-Ray, CF-Ray",
         "alt-svc": "h3=\":443\"; ma=86400",
         "cf-cache-status": "DYNAMIC",
-        "cf-ray": "a4d54926cc11ea14-ICN",
+        "cf-ray": "a50623234e6c2916-ICN",
         "connection": "keep-alive",
         "content-type": "text/event-stream; charset=utf-8",
-        "date": "Tue, 20 Oct 2026 04:30:11 GMT",
+        "date": "Mon, 26 Oct 2026 02:47:37 GMT",
         "openai-organization": "<redacted>",
-        "openai-processing-ms": "292",
+        "openai-processing-ms": "727",
         "openai-project": "<redacted>",
         "openai-version": "2020-10-01",
         "server": "cloudflare",
@@ -359,7 +359,7 @@
         "x-ratelimit-remaining-tokens": "39999418",
         "x-ratelimit-reset-requests": "4ms",
         "x-ratelimit-reset-tokens": "0s",
-        "x-request-id": "req_4c510b90097d446cb55665f9c6ebd18b"
+        "x-request-id": "req_98ac360fb65f4dffa2c54050d6648ed4"
       }
     }
   },
