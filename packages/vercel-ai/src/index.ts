@@ -861,7 +861,16 @@ export function createVercelNormalizer(options: VercelNormalizerOptions = {}): N
         // precedent, which fills it on its own error closes). Absent/empty
         // totalUsage ⇒ `mapUsage` returns undefined ⇒ no `usage` key at all.
         const usage = mapUsage(part["totalUsage"]);
-        if (str(part["finishReason"]) === "error") {
+        if (str(part["finishReason"]) === "interrupted") {
+          // ai>=7.0.153: the provider stream ended without a completion signal
+          // (@ai-sdk/openai 4.0.102 starts every Responses stream at unified
+          // "interrupted" until response.completed / response.incomplete lands),
+          // and ai stops the step loop on it. SPEC §8.0 item 17: a native
+          // interruption closes with turn.abort, never a success turn.done.
+          // turn.abort carries no usage; each step's usage already rode its
+          // finish-step's message.end, which item 17 allows in its place.
+          a.emit({ type: "turn.abort", turnId: t, reason: "interrupted" });
+        } else if (str(part["finishReason"]) === "error") {
           // The stashed arm-A fields (message + optional code/retriable) close
           // the turn; a bare finish{error} with no prior error part falls back.
           a.closeTurnError(t, {

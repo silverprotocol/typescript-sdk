@@ -2578,6 +2578,55 @@ describe("an error object holding a member named __proto__ renders to message te
   });
 });
 
+describe("finishReason 'interrupted' (ai>=7.0.153) closes turn.abort, never turn.done", () => {
+  // Captured 2026-10-26 from ai@7.0.153 + @ai-sdk/openai@4.0.102 (keyless:
+  // a stubbed fetch serving a Responses stream that ends after one text
+  // delta, with no response.completed). `performance` trimmed.
+  const truncated = [
+    { type: "start" },
+    { type: "start-step", request: {}, warnings: [] },
+    { type: "text-start", id: "msg_1", providerMetadata: { openai: { itemId: "msg_1" } } },
+    { type: "text-delta", id: "msg_1", text: "Hel" },
+    {
+      type: "finish-step",
+      finishReason: "interrupted",
+      usage: { inputTokenDetails: {}, outputTokenDetails: {} },
+      providerMetadata: { openai: { responseId: "resp_x" } },
+      response: { id: "resp_x", timestamp: "1970-01-01T00:00:01.000Z", modelId: "gpt-x", headers: { "content-type": "text/event-stream" } },
+    },
+    { type: "finish", finishReason: "interrupted", totalUsage: { inputTokenDetails: {}, outputTokenDetails: {} } },
+  ];
+
+  it("ends the message, then turn.abort{interrupted}; no turn.done, and the fold is aborted", () => {
+    const out = run(truncated);
+    expect(types(out)).toEqual([
+      "turn.start",
+      "step.start",
+      "message.start",
+      "text.start",
+      "text.delta",
+      "message.metadata",
+      "text.end",
+      "message.end",
+      "step.done",
+      "turn.abort",
+    ]);
+    expect(out.at(-1)).toMatchObject({ type: "turn.abort", reason: "interrupted" });
+    expectAllParse(out);
+    const turn = Object.values(reduce(out).turns)[0];
+    expect(turn?.outcome).toEqual({ type: "aborted", reason: "interrupted" });
+  });
+
+  it("a completed stream with the same parts still closes turn.done (control)", () => {
+    const done = truncated.map((p) =>
+      p.type === "finish-step" || p.type === "finish" ? { ...p, finishReason: "stop" } : p,
+    );
+    const out = run(done);
+    expect(out.at(-1)).toMatchObject({ type: "turn.done", finishReason: "stop", outcome: { type: "success" } });
+    expect(types(out)).not.toContain("turn.abort");
+  });
+});
+
 describe("text-end citations and tool-input-start inputEncoding (ai>=7.0.138 / 7.0.142)", () => {
   // The @ai-sdk/openai 4.0.98 shape: mapOpenAIResponsesCitations turns a
   // url_citation into a url source with offsets (no citedText), and a
