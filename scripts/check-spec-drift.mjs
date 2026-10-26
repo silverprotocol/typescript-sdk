@@ -700,13 +700,16 @@ function runCheck(sources) {
 // ─── 7. The revision-note head and the version sites follow AGJSON_VERSION (rc.1; stable heads 1.1) ─
 // G-rc1-a: §15 carries exactly one entry head for AGJSON_VERSION: `**<tag> (` for a prerelease (draft.N /
 // rc.N), `**X.Y.Z (` for a stable version. No draft entry follows draft.8, the closing draft. An rc.K head
-// directly follows the entry before it (draft.8 for rc.1, else rc.K−1). No draft or rc head follows a stable
+// directly follows the entry before it (draft.8 for rc.1, else rc.K−1), with any erratum paragraph (`**Erratum (`,
+// the §15 errata policy) between them skipped: an erratum is applied in place and is not a revision head.
+// No draft or rc head follows a stable
 // head. A stable version other than X.0.0 needs a stable head for an earlier version before its own (1.1.0
 // follows 1.0.0, per the GA plan). Still to come: whether a stable head must DIRECTLY follow its predecessor,
 // and which entry that is. G-rc1-b: the header's `Spec version` and §12's current-version sentence both read
 // AGJSON_VERSION. A tag-less version that is not X.Y.Z is a finding.
 const REVISION_HEAD = /^\*\*((?:draft|rc)\.\d+|\d+\.\d+\.\d+) \(/;
 const STABLE = /^(\d+)\.(\d+)\.(\d+)$/;
+const ERRATUM_PARAGRAPH = /^\*\*Erratum \(/;
 function compareStable(a, b) {
   const x = STABLE.exec(a).slice(1).map(Number);
   const y = STABLE.exec(b).slice(1).map(Number);
@@ -743,9 +746,9 @@ function checkRevisionHeads(specText, tsText) {
     if (rc) {
       const prev = Number(rc[1]) === 1 ? "draft.8" : `rc.${Number(rc[1]) - 1}`;
       let j = own[0].i - 1;
-      while (j >= 0 && lines[j].trim() === "") j--;
+      while (j >= 0 && (lines[j].trim() === "" || ERRATUM_PARAGRAPH.test(lines[j]))) j--;
       if (j < 0 || !lines[j].startsWith(`**${prev} (`)) {
-        findings.push(`  G-rc1-a: the ${tag} entry does not directly follow the ${prev} entry (previous non-blank line: ${j >= 0 ? lines[j].slice(0, 48) : "none"}…)`);
+        findings.push(`  G-rc1-a: the ${tag} entry does not directly follow the ${prev} entry (previous non-blank, non-erratum line: ${j >= 0 ? lines[j].slice(0, 48) : "none"}…)`);
       }
     }
   }
@@ -1018,6 +1021,22 @@ async function main() {
     }
     console.log(`\n✓ --self-test: check 7 stable heads — ${controls7.length} controls (1.0.0; 1.1.0 after 1.0.0) stayed green; ${plants7.length} plants produced the expected drift:`);
     for (const line of stableLines) console.log(line);
+    // Check 7, erratum paragraphs (§15 errata policy): an rc.K head must directly follow rc.K−1 with erratum
+    // paragraphs between them skipped. Control: rc.4 after the live tail (the rc.3 note and any erratum
+    // paragraph the live §15 carries) plus a planted erratum stays green. Plant: a non-erratum paragraph
+    // between rc.3 and rc.4 still surfaces the adjacency finding.
+    const ERR = "**Erratum (2099-01-02) — self-test erratum.** Text.";
+    const RC4 = "**rc.4 (2099-01-03) — self-test rc.** Text.";
+    const errControl = runCheck(promote("1.0.0-rc.4", [ERR, RC4])).findings.filter((l) => l.includes("G-rc1-a"));
+    if (errControl.length !== 0) { console.error("\n✖ --self-test: the rc.4-after-erratum control must produce no G-rc1-a finding:"); for (const line of errControl) console.error(line); process.exit(1); }
+    const errPlant = runCheck(promote("1.0.0-rc.4", ["_(self-test stray paragraph)_", RC4])).findings.filter((l) => l.includes("G-rc1-a"));
+    const errExpect = "the rc.4 entry does not directly follow the rc.3 entry";
+    if (!errPlant.some((l) => l.includes(errExpect))) {
+      console.error(`\n✖ --self-test: the check-7 plant "stray paragraph before rc.4" did not surface \`${errExpect}\` (got: ${errPlant.join(" | ") || "nothing"})`);
+      process.exit(1);
+    }
+    console.log("\n✓ --self-test: check 7 erratum paragraphs — rc.4 after an erratum paragraph stayed green; a stray paragraph before rc.4 produced the expected drift:");
+    for (const line of errPlant) console.log(`${line}   [stray paragraph before rc.4]`);
   }
 }
 
