@@ -703,9 +703,10 @@ function runCheck(sources) {
 // directly follows the entry before it (draft.8 for rc.1, else rc.K−1), with any erratum paragraph (`**Erratum (`,
 // the §15 errata policy) between them skipped: an erratum is applied in place and is not a revision head.
 // No draft or rc head follows a stable
-// head. A stable version other than X.0.0 needs a stable head for an earlier version before its own (1.1.0
-// follows 1.0.0, per the GA plan). Still to come: whether a stable head must DIRECTLY follow its predecessor,
-// and which entry that is. G-rc1-b: the header's `Spec version` and §12's current-version sentence both read
+// head. A stable X.0.0 head directly follows the last rc head of its line (1.0.0 follows rc.K for the
+// greatest K); a stable version other than X.0.0 directly follows a stable head for an earlier version
+// (1.1.0 follows 1.0.0, 1.0.1 follows 1.0.0); erratum paragraphs between them are skipped as above. An
+// SDK-only prerelease cut leaves AGJSON_VERSION and §15 untouched and stays green. G-rc1-b: the header's `Spec version` and §12's current-version sentence both read
 // AGJSON_VERSION. A tag-less version that is not X.Y.Z is a finding.
 const REVISION_HEAD = /^\*\*((?:draft|rc)\.\d+|\d+\.\d+\.\d+) \(/;
 const STABLE = /^(\d+)\.(\d+)\.(\d+)$/;
@@ -737,9 +738,21 @@ function checkRevisionHeads(specText, tsText) {
     findings.push(`  G-rc1-a: §15 has ${own.length} entry head(s) \`**${head} (\` for AGJSON_VERSION ${version}; expected exactly 1`);
   } else if (tag === "") {
     const [, , minor, patch] = STABLE.exec(version).map(Number);
-    if (minor > 0 || patch > 0) {
-      const earlier = heads.filter((h) => h.stable && h.i < own[0].i && compareStable(h.label, version) < 0);
-      if (earlier.length === 0) findings.push(`  G-rc1-a: the ${version} entry has no stable predecessor: §15 carries no \`**X.Y.Z (\` head for an earlier version before it`);
+    let j = own[0].i - 1;
+    while (j >= 0 && (lines[j].trim() === "" || ERRATUM_PARAGRAPH.test(lines[j]))) j--;
+    const prevHead = j >= 0 ? REVISION_HEAD.exec(lines[j]) : null;
+    const prevDesc = `previous non-blank, non-erratum line: ${j >= 0 ? lines[j].slice(0, 48) : "none"}…`;
+    if (minor === 0 && patch === 0) {
+      const rcs = heads.map((h) => /^rc\.(\d+)$/.exec(h.label)).filter(Boolean).map((r) => Number(r[1]));
+      if (rcs.length === 0) findings.push(`  G-rc1-a: §15 carries no rc entry for the ${version} entry to follow`);
+      else {
+        const last = `rc.${Math.max(...rcs)}`;
+        if (!prevHead || prevHead[1] !== last) findings.push(`  G-rc1-a: the ${version} entry does not directly follow the last rc entry (${last}) (${prevDesc})`);
+      }
+    } else if (!prevHead || !STABLE.test(prevHead[1])) {
+      findings.push(`  G-rc1-a: the ${version} entry does not directly follow a stable predecessor entry (${prevDesc})`);
+    } else if (compareStable(prevHead[1], version) >= 0) {
+      findings.push(`  G-rc1-a: the ${version} entry follows the ${prevHead[1]} entry, which is not an earlier version`);
     }
   } else {
     const rc = /^rc\.(\d+)$/.exec(tag);
@@ -976,10 +989,13 @@ async function main() {
     }
     console.log("\n✓ --self-test: check 7 — a duplicated entry head and a mismatched §12 version each produced the expected drift:");
     for (const line of [...dupHits, ...verHits]) console.log(line);
-    // Check 7, stable heads (1.1): promote an in-memory copy to a stable X.Y.Z version. Two controls stay
-    // green: 1.0.0 with its head after the last prerelease entry, and 1.1.0 with a 1.0.0 head before it.
-    // Each plant must surface its own finding: missing, duplicated, an rc head after a stable one, no stable
-    // predecessor (absent, placed after, or only a later version), and a tag-less version that is not X.Y.Z.
+    // Check 7, stable heads (1.1): promote an in-memory copy to a stable X.Y.Z version. Controls stay green:
+    // 1.0.0 directly after the live tail (the last rc entry plus any erratum paragraph), 1.1.0 directly after
+    // 1.0.0, 1.1.0 after an erratum paragraph on 1.0.0, 1.0.1 after 1.0.0. Each plant must surface its own
+    // finding: missing, duplicated, an rc head after a stable one, 1.0.0 not directly after the last rc entry
+    // (a stray paragraph before it, or an earlier rc between), 1.0.0 with no rc entry at all, no stable
+    // predecessor directly before 1.1.0 (absent, a stray paragraph between, placed after, or a later version),
+    // and a tag-less version that is not X.Y.Z.
     const cur = checked.specVersion;
     const promote = (v, tail) => ({
       ts: sources.ts.replace(/export const AGJSON_VERSION = "[^"]+"/, () => `export const AGJSON_VERSION = "${v}"`),
@@ -989,9 +1005,13 @@ async function main() {
         .replace(/\s*$/, () => `\n\n${tail.join("\n\n")}\n`),
     });
     const H100 = "**1.0.0 (2099-01-01) — self-test stable.** Text.";
+    const H101 = "**1.0.1 (2099-01-20) — self-test patch.** Text.";
     const H110 = "**1.1.0 (2099-02-01) — self-test minor.** Text.";
     const RC = "**rc.99 (2099-03-01) — self-test late rc.** Text.";
-    const controls7 = [["1.0.0", [H100]], ["1.1.0", [H100, H110]]];
+    const RC98 = "**rc.98 (2099-02-28) — self-test earlier rc.** Text.";
+    const ERR = "**Erratum (2099-01-02) — self-test erratum.** Text.";
+    const STRAY = "_(self-test stray paragraph)_";
+    const controls7 = [["1.0.0", [H100]], ["1.1.0", [H100, H110]], ["1.1.0", [H100, ERR, H110]], ["1.0.1", [H100, H101]]];
     for (const [v, tail] of controls7) {
       const t = promote(v, tail);
       if (t.ts === sources.ts || !t.spec.includes(`**Spec version: \`${v}\`**`) || !t.spec.includes(`The current spec version is \`${v}\``)) {
@@ -1005,9 +1025,12 @@ async function main() {
       ["missing", "1.1.0", [H100], "§15 has 0 entry head(s) `**1.1.0 (`"],
       ["duplicated", "1.1.0", [H100, H110, H110], "§15 has 2 entry head(s) `**1.1.0 (`"],
       ["rc after stable", "1.1.0", [H100, H110, RC], "a rc.99 entry at SPEC.md:"],
-      ["no stable predecessor", "1.1.0", [H110], "the 1.1.0 entry has no stable predecessor"],
-      ["predecessor after", "1.1.0", [H110, H100], "the 1.1.0 entry has no stable predecessor"],
-      ["predecessor not earlier", "1.1.0", ["**1.2.0 (2099-01-15) — self-test later.** Text.", H110], "the 1.1.0 entry has no stable predecessor"],
+      ["no stable predecessor", "1.1.0", [H110], "the 1.1.0 entry does not directly follow a stable predecessor entry"],
+      ["stray paragraph before 1.1.0", "1.1.0", [H100, STRAY, H110], "the 1.1.0 entry does not directly follow a stable predecessor entry"],
+      ["predecessor after", "1.1.0", [H110, H100], "the 1.1.0 entry does not directly follow a stable predecessor entry"],
+      ["predecessor not earlier", "1.1.0", ["**1.2.0 (2099-01-15) — self-test later.** Text.", H110], "the 1.1.0 entry follows the 1.2.0 entry, which is not an earlier version"],
+      ["stray paragraph before 1.0.0", "1.0.0", [STRAY, H100], "the 1.0.0 entry does not directly follow the last rc entry (rc."],
+      ["1.0.0 after an earlier rc", "1.0.0", [RC, RC98, H100], "the 1.0.0 entry does not directly follow the last rc entry (rc.99)"],
       ["not X.Y.Z", "1.1", [H100, H110], "AGJSON_VERSION 1.1 is neither a prerelease"],
     ];
     const stableLines = [];
@@ -1019,17 +1042,23 @@ async function main() {
       }
       stableLines.push(...hits.map((l) => `${l}   [${name}]`));
     }
-    console.log(`\n✓ --self-test: check 7 stable heads — ${controls7.length} controls (1.0.0; 1.1.0 after 1.0.0) stayed green; ${plants7.length} plants produced the expected drift:`);
+    const noRc = promote("1.0.0", [H100]);
+    noRc.spec = noRc.spec.replace(/^\*\*rc\.\d+ \(.*$/gm, () => STRAY);
+    if (noRc.spec === promote("1.0.0", [H100]).spec) { console.error("\n✖ --self-test: could not apply the check-7 plant \"no rc entry\" (no `**rc.N (` head in the live §15)"); process.exit(1); }
+    const noRcHits = runCheck(noRc).findings.filter((l) => l.includes("G-rc1-a"));
+    const noRcExpect = "§15 carries no rc entry for the 1.0.0 entry to follow";
+    if (!noRcHits.some((l) => l.includes(noRcExpect))) { console.error(`\n✖ --self-test: the check-7 plant "no rc entry" did not surface \`${noRcExpect}\` (got: ${noRcHits.join(" | ") || "nothing"})`); process.exit(1); }
+    stableLines.push(...noRcHits.map((l) => `${l}   [no rc entry]`));
+    console.log(`\n✓ --self-test: check 7 stable heads — ${controls7.length} controls (1.0.0 after the last rc; 1.1.0 after 1.0.0, also across an erratum; 1.0.1 after 1.0.0) stayed green; ${plants7.length + 1} plants produced the expected drift:`);
     for (const line of stableLines) console.log(line);
     // Check 7, erratum paragraphs (§15 errata policy): an rc.K head must directly follow rc.K−1 with erratum
     // paragraphs between them skipped. Control: rc.4 after the live tail (the rc.3 note and any erratum
     // paragraph the live §15 carries) plus a planted erratum stays green. Plant: a non-erratum paragraph
     // between rc.3 and rc.4 still surfaces the adjacency finding.
-    const ERR = "**Erratum (2099-01-02) — self-test erratum.** Text.";
     const RC4 = "**rc.4 (2099-01-03) — self-test rc.** Text.";
     const errControl = runCheck(promote("1.0.0-rc.4", [ERR, RC4])).findings.filter((l) => l.includes("G-rc1-a"));
     if (errControl.length !== 0) { console.error("\n✖ --self-test: the rc.4-after-erratum control must produce no G-rc1-a finding:"); for (const line of errControl) console.error(line); process.exit(1); }
-    const errPlant = runCheck(promote("1.0.0-rc.4", ["_(self-test stray paragraph)_", RC4])).findings.filter((l) => l.includes("G-rc1-a"));
+    const errPlant = runCheck(promote("1.0.0-rc.4", [STRAY, RC4])).findings.filter((l) => l.includes("G-rc1-a"));
     const errExpect = "the rc.4 entry does not directly follow the rc.3 entry";
     if (!errPlant.some((l) => l.includes(errExpect))) {
       console.error(`\n✖ --self-test: the check-7 plant "stray paragraph before rc.4" did not surface \`${errExpect}\` (got: ${errPlant.join(" | ") || "nothing"})`);
