@@ -46,12 +46,22 @@ content** — render it as text content (React children / RN `<Text>` /
 Blocks: paragraphs (single newlines become explicit `break` nodes — chat prose
 is line-broken), headings (`#`–`######`), fenced code (with language tag),
 flat ordered/unordered lists, pipe tables (GFM subset). Inline: `**strong**`,
-`*em*` / `_em_`, `` `code` ``, `[links](https://…)`, backslash escapes.
+`*em*` / `_em_`, `` `code` ``, `[links](https://…)`, backslash escapes. A
+delimiter run closes the innermost open emphasis whose marker it matches
+exactly; a run no single marker matches (`***`) closes outward from the
+outermost frame it can, so `*a **b** c*` is an em holding a strong and
+`*a **b***` closes both.
 
 A fence may be indented 0–3 spaces, or sit at a list item's content column
 (plus 0–3) to continue that item. List items hold inline content only, so a
 fence that continues an item closes the list and follows it as a top-level
 `code-fence` block; a later item opens a new list that keeps its number.
+
+An indented line directly under a list item continues that item: its text
+joins the item's inline content after a `break`, and emphasis may span the
+lines. That includes a table or heading line indented under an item, which
+is block content inside an item and stays text. An unindented line ends the
+list and starts a paragraph.
 
 Deliberately out of v1 (parses as plain text): images, blockquotes,
 strikethrough, autolinked bare URLs, nested lists, block content inside list
